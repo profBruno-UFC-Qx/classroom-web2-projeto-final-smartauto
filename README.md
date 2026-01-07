@@ -8,6 +8,8 @@ Sistema de aluguel de veículos, o qual permitirá visualização do catálogo d
 
 Membro 1: Gabriel Viana Raulino. 509291, Sistemas de informação.
 
+Membro 2: Kauan Oliveira Perdigão lopes, Sistemas de informação.
+
 ## :bulb: Objetivo Geral
 Objetivo do projeto é construir uma aplicação funcional e com boa usabilidade que forneça uma facilidade para locadores de veículos nas atividades de catálogo de véiculo e gestão dos alguéis.
 
@@ -59,7 +61,7 @@ class Usuario {
 }
 class Role{
     ADMIN
-    VENDEDOR
+    LOCADOR
     CLIENTE
 }
 Usuario --> Role : "é um"
@@ -69,7 +71,6 @@ class Locacao {
   -id
   -data_inicio
   -data_fim
-  -valor_diaria
   -locador
   -veiculo
   -cliente
@@ -81,7 +82,7 @@ class Veiculo {
   -marca
   -modelo
   -ano
-  -fipe
+  -valor_diaria
   -disponivel
   -cor
 }
