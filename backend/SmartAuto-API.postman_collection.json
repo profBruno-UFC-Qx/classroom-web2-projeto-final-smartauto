@@ -1,0 +1,723 @@
+{
+  "info": {
+    "name": "SmartAuto API",
+    "description": "API do sistema SmartAuto - Locação de Veículos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "smartauto-api"
+  },
+  "item": [
+    {
+      "name": "Root",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Verifica se a API está funcionando"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categorias",
+      "item": [
+        {
+          "name": "Listar Categorias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias?offset=0&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["categorias"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Número de registros a pular"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Número máximo de registros (máx: 100)"
+                }
+              ]
+            },
+            "description": "Lista todas as categorias com paginação"
+          }
+        },
+        {
+          "name": "Buscar Categoria por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias/:categoria_id",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", ":categoria_id"],
+              "variable": [
+                {
+                  "key": "categoria_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Busca uma categoria específica pelo ID"
+          }
+        },
+        {
+          "name": "Criar Categoria",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Locação\",\n  \"descricao\": \"Categoria para veículos disponíveis para locação\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categorias",
+              "host": ["{{base_url}}"],
+              "path": ["categorias"]
+            },
+            "description": "Cria uma nova categoria"
+          }
+        },
+        {
+          "name": "Atualizar Categoria",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Locação\",\n  \"descricao\": \"Descrição atualizada\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categorias/:categoria_id",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", ":categoria_id"],
+              "variable": [
+                {
+                  "key": "categoria_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualiza uma categoria existente"
+          }
+        },
+        {
+          "name": "Deletar Categoria",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias/:categoria_id",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", ":categoria_id"],
+              "variable": [
+                {
+                  "key": "categoria_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Remove uma categoria"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuários",
+      "item": [
+        {
+          "name": "Listar Usuários",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuarios?offset=0&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lista todos os usuários com paginação"
+          }
+        },
+        {
+          "name": "Buscar Usuário por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuarios/:id",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Busca um usuário específico pelo ID"
+          }
+        },
+        {
+          "name": "Buscar Usuário por Nome",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuarios/nome/:nome",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "nome", ":nome"],
+              "variable": [
+                {
+                  "key": "nome",
+                  "value": "João"
+                }
+              ]
+            },
+            "description": "Busca usuários pelo nome (busca parcial)"
+          }
+        },
+        {
+          "name": "Buscar Usuário por Role",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuarios/role/:role",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "role", ":role"],
+              "variable": [
+                {
+                  "key": "role",
+                  "value": "cliente",
+                  "description": "cliente, locador ou admin"
+                }
+              ]
+            },
+            "description": "Busca usuários por role (cliente, locador, admin)"
+          }
+        },
+        {
+          "name": "Criar Usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva\",\n  \"usuario\": \"joao.silva\",\n  \"senha\": \"senha123\",\n  \"telefone\": \"(11) 99999-9999\",\n  \"email\": \"joao@example.com\",\n  \"uf\": \"SP\",\n  \"cidade\": \"São Paulo\",\n  \"logradouro\": \"Rua das Flores\",\n  \"numero\": 123,\n  \"role\": \"cliente\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios"]
+            },
+            "description": "Cria um novo usuário"
+          }
+        },
+        {
+          "name": "Atualizar Usuário",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva Atualizado\",\n  \"usuario\": \"joao.silva\",\n  \"senha\": \"novaSenha123\",\n  \"telefone\": \"(11) 88888-8888\",\n  \"email\": \"joao.novo@example.com\",\n  \"uf\": \"RJ\",\n  \"cidade\": \"Rio de Janeiro\",\n  \"logradouro\": \"Av. Atlântica\",\n  \"numero\": 456,\n  \"role\": \"locador\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/:id",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualiza um usuário existente"
+          }
+        },
+        {
+          "name": "Deletar Usuário",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuarios/:id",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Remove um usuário"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Veículos",
+      "item": [
+        {
+          "name": "Listar Veículos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/veiculos?offset=0&limit=10&disponiveis=true",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "disponiveis",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Lista todos os veículos com paginação"
+          }
+        },
+        {
+          "name": "Listar Veículos com Categoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/veiculos/veiculo-com-categoria/?offset=0&limit=10&disponiveis=true",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", "veiculo-com-categoria", ""],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "disponiveis",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Lista veículos incluindo suas categorias"
+          }
+        },
+        {
+          "name": "Buscar Veículo por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/veiculos/:veiculo_id",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", ":veiculo_id"],
+              "variable": [
+                {
+                  "key": "veiculo_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Busca um veículo específico pelo ID"
+          }
+        },
+        {
+          "name": "Buscar Veículos por Categoria",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/veiculos/categoria/:categoria",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", "categoria", ":categoria"],
+              "variable": [
+                {
+                  "key": "categoria",
+                  "value": "Locação"
+                }
+              ]
+            },
+            "description": "Lista veículos de uma categoria específica"
+          }
+        },
+        {
+          "name": "Buscar Veículos por Preço",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/veiculos/preco/?min_preco=0&max_preco=100000",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", "preco", ""],
+              "query": [
+                {
+                  "key": "min_preco",
+                  "value": "0"
+                },
+                {
+                  "key": "max_preco",
+                  "value": "100000"
+                }
+              ]
+            },
+            "description": "Lista veículos dentro de uma faixa de preço"
+          }
+        },
+        {
+          "name": "Buscar Veículos por Ano",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/veiculos/ano/:ano",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", "ano", ":ano"],
+              "variable": [
+                {
+                  "key": "ano",
+                  "value": "2023"
+                }
+              ]
+            },
+            "description": "Lista veículos de um ano específico"
+          }
+        },
+        {
+          "name": "Buscar Veículos por Modelo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/veiculos/modelo/:modelo",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", "modelo", ":modelo"],
+              "variable": [
+                {
+                  "key": "modelo",
+                  "value": "Civic"
+                }
+              ]
+            },
+            "description": "Lista veículos de um modelo específico"
+          }
+        },
+        {
+          "name": "Criar Veículo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marca\": \"Honda\",\n  \"modelo\": \"Civic\",\n  \"ano\": 2023,\n  \"preco\": 120000.00,\n  \"cor\": \"Branco\",\n  \"disponivel\": true,\n  \"valor_diaria\": 150.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/veiculos",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos"]
+            },
+            "description": "Cria um novo veículo"
+          }
+        },
+        {
+          "name": "Atualizar Veículo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marca\": \"Honda\",\n  \"modelo\": \"Civic\",\n  \"ano\": 2026,\n  \"preco\": 125000.00,\n  \"cor\": \"Preto\",\n  \"disponivel\": true,\n  \"valor_diaria\": 180.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/veiculos/:veiculo_id",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", ":veiculo_id"],
+              "variable": [
+                {
+                  "key": "veiculo_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualiza um veículo existente"
+          }
+        },
+        {
+          "name": "Deletar Veículo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/veiculos/:veiculo_id",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", ":veiculo_id"],
+              "variable": [
+                {
+                  "key": "veiculo_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Remove um veículo"
+          }
+        },
+        {
+          "name": "Associar Categoria ao Veículo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome_categoria\": \"Locação\",\n  \"descricao\": \"Categoria para veículos disponíveis para locação\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/veiculos/categoria/:veiculo_id",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", "categoria", ":veiculo_id"],
+              "variable": [
+                {
+                  "key": "veiculo_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Associa uma categoria a um veículo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Locações",
+      "item": [
+        {
+          "name": "Listar Locações",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/locacoes?offset=0&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lista todas as locações com paginação"
+          }
+        },
+        {
+          "name": "Buscar Locação por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/locacoes/:id",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Busca uma locação específica pelo ID"
+          }
+        },
+        {
+          "name": "Criar Locação",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data_inicio\": \"2026-01-07\",\n  \"data_fim\": \"2026-01-14\",\n  \"cliente_id\": 1,\n  \"locador_id\": 1,\n  \"veiculo_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/locacoes",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes"]
+            },
+            "description": "Cria uma nova locação com status PENDENTE. O valor_total é calculado automaticamente baseado na valor_diaria do veículo e duração."
+          }
+        },
+        {
+          "name": "Atualizar Locação",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data_inicio\": \"2026-01-08\",\n  \"data_fim\": \"2026-01-15\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/locacoes/:id",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualiza uma locação existente. O valor_total é recalculado automaticamente."
+          }
+        },
+        {
+          "name": "Aprovar Locação",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/locacoes/:id/aprovar",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes", ":id", "aprovar"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Aprova uma locação pendente. Muda status para APROVADA e marca veículo como indisponível."
+          }
+        },
+        {
+          "name": "Recusar Locação",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/locacoes/:id/recusar",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes", ":id", "recusar"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Recusa uma locação pendente. Muda status para RECUSADA. Veículo permanece disponível."
+          }
+        },
+        {
+          "name": "Deletar Locação",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/locacoes/:id",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Remove uma locação"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}
+
+
+
+
+
+
