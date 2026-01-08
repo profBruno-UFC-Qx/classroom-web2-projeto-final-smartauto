@@ -104,13 +104,23 @@ O servidor estará disponível em `http://localhost:3000` por padrão.
 
 ### Veículos
 
-- `GET /veiculos` - Lista veículos (com paginação, `?disponiveis=true`)
-- `GET /veiculos/veiculo-com-categoria/` - Lista veículos com categorias
-- `GET /veiculos/:veiculo_id` - Busca veículo por ID
-- `GET /veiculos/categoria/:categoria` - Lista veículos por categoria
-- `GET /veiculos/preco/?min_preco=0&max_preco=1000000` - Lista veículos por faixa de preço
-- `GET /veiculos/ano/:ano` - Lista veículos por ano
-- `GET /veiculos/modelo/:modelo` - Lista veículos por modelo
+- `GET /veiculos` - Lista veículos com categorias (sempre retorna categorias)
+  - Query params opcionais (podem ser combinados):
+    - `offset`: número (padrão: 0) - Paginação
+    - `limit`: número (padrão: 10, máximo: 100) - Limite de resultados
+    - `disponiveis`: boolean (padrão: true) - Filtrar por disponibilidade
+    - `categoria`: string - Filtrar por nome da categoria
+    - `min_preco`: number - Preço mínimo
+    - `max_preco`: number - Preço máximo
+    - `ano`: number - Filtrar por ano
+    - `modelo`: string - Filtrar por modelo
+    - `marca`: string - Filtrar por marca
+  - Exemplos:
+    - `GET /veiculos?categoria=Locacao&disponiveis=true` - Veículos disponíveis da categoria Locação
+    - `GET /veiculos?ano=2023&marca=Honda` - Veículos Honda de 2023
+    - `GET /veiculos?min_preco=50000&max_preco=150000` - Veículos na faixa de preço
+    - `GET /veiculos?modelo=Civic&disponiveis=true` - Civics disponíveis
+- `GET /veiculos/:veiculo_id` - Busca veículo por ID (retorna com categorias)
 - `POST /veiculos` - Cria veículo
 - `PUT /veiculos/:veiculo_id` - Atualiza veículo
 - `DELETE /veiculos/:veiculo_id` - Remove veículo

@@ -312,46 +312,58 @@
               "query": [
                 {
                   "key": "offset",
-                  "value": "0"
+                  "value": "0",
+                  "description": "Número de registros a pular"
                 },
                 {
                   "key": "limit",
-                  "value": "10"
+                  "value": "10",
+                  "description": "Número máximo de registros (máx: 100)"
                 },
                 {
                   "key": "disponiveis",
-                  "value": "true"
+                  "value": "true",
+                  "description": "Filtrar por disponibilidade (padrão: true)"
+                },
+                {
+                  "key": "categoria",
+                  "value": "",
+                  "description": "Filtrar por nome da categoria",
+                  "disabled": true
+                },
+                {
+                  "key": "min_preco",
+                  "value": "",
+                  "description": "Preço mínimo",
+                  "disabled": true
+                },
+                {
+                  "key": "max_preco",
+                  "value": "",
+                  "description": "Preço máximo",
+                  "disabled": true
+                },
+                {
+                  "key": "ano",
+                  "value": "",
+                  "description": "Filtrar por ano",
+                  "disabled": true
+                },
+                {
+                  "key": "modelo",
+                  "value": "",
+                  "description": "Filtrar por modelo",
+                  "disabled": true
+                },
+                {
+                  "key": "marca",
+                  "value": "",
+                  "description": "Filtrar por marca",
+                  "disabled": true
                 }
               ]
             },
-            "description": "Lista todos os veículos com paginação"
-          }
-        },
-        {
-          "name": "Listar Veículos com Categoria",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/veiculos/veiculo-com-categoria/?offset=0&limit=10&disponiveis=true",
-              "host": ["{{base_url}}"],
-              "path": ["veiculos", "veiculo-com-categoria", ""],
-              "query": [
-                {
-                  "key": "offset",
-                  "value": "0"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                },
-                {
-                  "key": "disponiveis",
-                  "value": "true"
-                }
-              ]
-            },
-            "description": "Lista veículos incluindo suas categorias"
+            "description": "Lista todos os veículos com categorias (sempre retorna categorias). Todos os query params são opcionais e podem ser combinados.\n\nExemplos:\n- GET /veiculos?categoria=Locacao&disponiveis=true\n- GET /veiculos?ano=2023&marca=Honda\n- GET /veiculos?min_preco=50000&max_preco=150000\n- GET /veiculos?modelo=Civic&disponiveis=true"
           }
         },
         {
@@ -370,87 +382,7 @@
                 }
               ]
             },
-            "description": "Busca um veículo específico pelo ID"
-          }
-        },
-        {
-          "name": "Buscar Veículos por Categoria",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/veiculos/categoria/:categoria",
-              "host": ["{{base_url}}"],
-              "path": ["veiculos", "categoria", ":categoria"],
-              "variable": [
-                {
-                  "key": "categoria",
-                  "value": "Locação"
-                }
-              ]
-            },
-            "description": "Lista veículos de uma categoria específica"
-          }
-        },
-        {
-          "name": "Buscar Veículos por Preço",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/veiculos/preco/?min_preco=0&max_preco=100000",
-              "host": ["{{base_url}}"],
-              "path": ["veiculos", "preco", ""],
-              "query": [
-                {
-                  "key": "min_preco",
-                  "value": "0"
-                },
-                {
-                  "key": "max_preco",
-                  "value": "100000"
-                }
-              ]
-            },
-            "description": "Lista veículos dentro de uma faixa de preço"
-          }
-        },
-        {
-          "name": "Buscar Veículos por Ano",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/veiculos/ano/:ano",
-              "host": ["{{base_url}}"],
-              "path": ["veiculos", "ano", ":ano"],
-              "variable": [
-                {
-                  "key": "ano",
-                  "value": "2023"
-                }
-              ]
-            },
-            "description": "Lista veículos de um ano específico"
-          }
-        },
-        {
-          "name": "Buscar Veículos por Modelo",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/veiculos/modelo/:modelo",
-              "host": ["{{base_url}}"],
-              "path": ["veiculos", "modelo", ":modelo"],
-              "variable": [
-                {
-                  "key": "modelo",
-                  "value": "Civic"
-                }
-              ]
-            },
-            "description": "Lista veículos de um modelo específico"
+            "description": "Busca um veículo específico pelo ID (retorna com categorias)"
           }
         },
         {
