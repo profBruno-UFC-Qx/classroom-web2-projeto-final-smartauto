@@ -1,0 +1,1 @@
+// Tipos/Interfaces de autenticação
