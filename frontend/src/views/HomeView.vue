@@ -1,5 +1,4 @@
 <template>
-<<<<<<< HEAD
   <main-layout>
     <v-container fluid class="pa-0 h-100">
       <!-- Hero Section -->
@@ -130,9 +129,3 @@ const features = [
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 </style>
-=======
-  <div>
-    <h1>Home</h1>
-  </div>
-</template>
->>>>>>> 500e3637087aabb719f56fad83e2b383c3b06027
