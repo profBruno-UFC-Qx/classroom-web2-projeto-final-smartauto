@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authService } from '../services/authService'
-import type { LoginRequest, RegisterRequest, UserData, Role } from '../types/Auth'
+import type { UserData, Role } from '../types/Auth'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserData | null>(null)
@@ -26,12 +26,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function login(credentials: LoginRequest) {
+  async function login(usuario: string, senha: string) {
     try {
       loading.value = true
       error.value = null
       
-      const response = await authService.login(credentials)
+      const response = await authService.login({ usuario, senha })
       
       token.value = response.token
       user.value = response.usuario
@@ -48,12 +48,22 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(data: RegisterRequest) {
+  async function register(usuario: string, nome: string, email: string, senha: string) {
     try {
       loading.value = true
       error.value = null
       
-      const response = await authService.register(data)
+      const response = await authService.register({ 
+        usuario, 
+        nome, 
+        email, 
+        senha,
+        telefone: '',
+        uf: '',
+        cidade: '',
+        logradouro: '',
+        numero: 0
+      })
       
       token.value = response.token
       user.value = response.usuario
