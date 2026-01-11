@@ -8,7 +8,7 @@ import veiculosRouter from "./routes/veiculos";
 import locacoesRouter from "./routes/locacoes";
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Middleware para parsing JSON
 app.use(express.json());
