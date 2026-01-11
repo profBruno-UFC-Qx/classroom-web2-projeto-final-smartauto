@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <script setup lang="ts">
 import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
@@ -15,15 +14,20 @@ const snackbarText = ref('')
 const snackbarColor = ref<'success' | 'error' | 'info'>('success')
 
 const form = reactive({
-  usuario: '',
   nome: '',
-  email: '',
+  usuario: '',
   senha: '',
-  confirmSenha: ''
+  confirmaSenha: '',
+  telefone: '',
+  email: '',
+  uf: '',
+  cidade: '',
+  logradouro: '',
+  numero: 0
 })
 
 async function handleRegister() {
-  if (form.senha !== form.confirmSenha) {
+  if (form.senha !== form.confirmaSenha) {
     error.value = 'As senhas não coincidem'
     return
   }
@@ -70,6 +74,19 @@ async function handleRegister() {
             />
           </div>
 
+
+          <div class="form-group">
+            <label for="usuario">Usuário</label>
+            <input
+              id="usuario"
+              v-model="form.usuario"
+              type="text"
+              required
+              class="form-input"
+              placeholder="Seu usuário"
+            />
+          </div>
+
           <div class="form-group">
             <label for="email">Email</label>
             <input
@@ -98,7 +115,7 @@ async function handleRegister() {
             <label for="confirm-password">Confirmar Senha</label>
             <input
               id="confirm-password"
-              v-model="form.confirmSenha"
+              v-model="form.confirmaSenha"
               type="password"
               required
               class="form-input"
@@ -148,26 +165,29 @@ async function handleRegister() {
 }
 
 .register-card {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   width: 100%;
   max-width: 450px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .register-card h1 {
   text-align: center;
-  color: #2c3e50;
+  color: #1a1a1a;
   margin: 0 0 0.5rem 0;
   font-size: 2rem;
+  font-weight: 700;
 }
 
 .subtitle {
   text-align: center;
-  color: #666;
+  color: #4a4a4a;
   margin: 0 0 2rem 0;
   font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .alert {
@@ -196,15 +216,21 @@ async function handleRegister() {
 
 .form-group label {
   font-weight: 600;
-  color: #333;
+  color: #1a1a1a;
 }
 
 .form-input {
   padding: 0.7rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
   font-size: 0.95rem;
-  transition: border-color 0.3s;
+  background-color: #ffffff;
+  color: #1a1a1a;
+  transition: all 0.3s;
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
 }
 
 .form-input:focus {
@@ -247,7 +273,7 @@ async function handleRegister() {
 
 .form-footer p {
   margin: 0;
-  color: #666;
+  color: #4a4a4a;
   font-size: 0.9rem;
 }
 
@@ -261,14 +287,4 @@ async function handleRegister() {
 .link:hover {
   color: #2980b9;
 }
-=======
-<!-- Página de Cadastro de usuário -->
-<template>
-  <div>
-    <h1>Register</h1>
-  </div>
-</template>
-
-<style scoped>
->>>>>>> 500e3637087aabb719f56fad83e2b383c3b06027
 </style>

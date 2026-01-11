@@ -17,7 +17,8 @@ import AppFooter from '../components/AppFooter.vue'
 
 <style scoped>
 :deep(.bg-light) {
-  background-color: #f5f5f5;
+  background-color: #f8f9fa;
   width: 100%;
+  min-height: 100%;
 }
 </style>

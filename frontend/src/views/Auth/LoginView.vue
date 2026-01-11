@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <script setup lang="ts">
 import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
@@ -12,14 +11,14 @@ const loading = computed(() => authStore.loading)
 const error = ref<string | null>(null)
 
 const form = reactive({
-  email: '',
-  password: ''
+  usuario: '',
+  senha: ''
 })
 
 async function handleLogin() {
   try {
     error.value = null
-    await authStore.login(form.email, form.password)
+    await authStore.login(form.usuario, form.senha)
     await router.push('/dashboard')
   } catch {
     error.value = authStore.error || 'Erro ao fazer login'
@@ -40,14 +39,14 @@ async function handleLogin() {
           </div>
 
           <div class="form-group">
-            <label for="email">Email</label>
+            <label for="usuario">Usuário</label>
             <input
               id="email"
-              v-model="form.email"
-              type="email"
+              v-model="form.usuario"
+              type="text"
               required
               class="form-input"
-              placeholder="seu@email.com"
+              placeholder="seu usuario"
             />
           </div>
 
@@ -55,7 +54,7 @@ async function handleLogin() {
             <label for="password">Senha</label>
             <input
               id="password"
-              v-model="form.password"
+              v-model="form.senha"
               type="password"
               required
               class="form-input"
@@ -103,7 +102,7 @@ async function handleLogin() {
 
 .login-card h1 {
   text-align: center;
-  color: #2c3e50;
+  color: #ffffff;
   margin: 0 0 0.5rem 0;
   font-size: 2rem;
 }
@@ -206,14 +205,4 @@ async function handleLogin() {
 .link:hover {
   color: #2980b9;
 }
-=======
-<!-- Página de Login -->
-<template>
-  <div>
-    <h1>Login</h1>
-  </div>
-</template>
-
-<style scoped>
->>>>>>> 500e3637087aabb719f56fad83e2b383c3b06027
 </style>

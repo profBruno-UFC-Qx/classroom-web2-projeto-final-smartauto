@@ -30,20 +30,20 @@
       </v-row>
 
       <!-- Features Section -->
-      <v-row class="py-12 px-4">
+      <v-row class="py-12 px-4 features-section">
         <v-col cols="12" class="text-center mb-8">
-          <h2 class="text-h3 text-grey-darken-3">Características</h2>
+          <h2 class="text-h3 text-grey-darken-4">Características</h2>
         </v-col>
 
         <v-col v-for="(feature, index) in features" :key="index" cols="12" md="6" lg="4" class="mb-4">
-          <v-card class="h-100 feature-card" elevation="1">
-            <v-card-title class="text-h6">{{ feature.title }}</v-card-title>
-            <v-card-text>{{ feature.description }}</v-card-text>
+          <v-card class="h-100 feature-card" elevation="3">
+            <v-card-title class="text-h6 text-grey-darken-4">{{ feature.title }}</v-card-title>
+            <v-card-text class="text-grey-darken-2">{{ feature.description }}</v-card-text>
           </v-card>
         </v-col>
       </v-row>
 
-      <!-- CTA Section -->
+      <!-- CTA Section
       <v-row v-if="!isAuthenticated" class="cta-section py-12 px-4" no-gutters>
         <v-col cols="12" class="text-center">
           <h2 class="text-h3 mb-4">Comece Agora</h2>
@@ -52,7 +52,7 @@
             Criar Conta Grátis
           </v-btn>
         </v-col>
-      </v-row>
+      </v-row> -->
     </v-container>
   </main-layout>
 </template>
@@ -115,14 +115,24 @@ const features = [
   flex-wrap: wrap;
 }
 
+.features-section {
+  background-color: #f0f2f5;
+  margin: 0;
+  border-radius: 0;
+}
+
 .feature-card {
   transition: all 0.3s ease;
-  background: white;
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
 
 .feature-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 12px 28px rgba(102, 126, 234, 0.2) !important;
+  border-color: #667eea !important;
 }
 
 .cta-section {

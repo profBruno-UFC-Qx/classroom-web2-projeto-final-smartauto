@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -276,13 +275,3 @@ onMounted(() => {
     </v-container>
   </main-layout>
 </template>
-=======
-<template>
-  <div>
-    <h1>Veiculo Form</h1>
-  </div>
-</template>
-
-<style scoped>
-</style>
->>>>>>> 500e3637087aabb719f56fad83e2b383c3b06027

@@ -24,13 +24,13 @@ const currentYear = new Date().getFullYear()
           <li v-if="isAuthenticated"><router-link to="/veiculos">Veículos</router-link></li>
         </ul>
       </div>
-      <div class="footer-section">
+      <!-- <div class="footer-section">
         <h4>Contato</h4>
         <p>
           <a href="mailto:info@smartauto.com">info@smartauto.com</a><br />
           <a href="tel:+55-00-0000-0000">(00) 0000-0000</a>
         </p>
-      </div>
+      </div> -->
     </div>
     <div class="footer-bottom">
       <p>&copy; {{ currentYear }} SmartAuto. Todos os direitos reservados.</p>

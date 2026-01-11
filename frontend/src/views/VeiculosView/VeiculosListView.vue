@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useVeiculosStore } from '../../stores/veiculos'
@@ -242,13 +241,3 @@ onMounted(() => {
     />
   </main-layout>
 </template>
-=======
-<template>
-  <div>
-    <h1>Veiculos</h1>
-  </div>
-</template>
-
-<style scoped>
-</style>
->>>>>>> 500e3637087aabb719f56fad83e2b383c3b06027
