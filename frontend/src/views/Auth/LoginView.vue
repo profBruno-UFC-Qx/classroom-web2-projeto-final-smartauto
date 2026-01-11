@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <script setup lang="ts">
 import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
@@ -205,4 +206,14 @@ async function handleLogin() {
 .link:hover {
   color: #2980b9;
 }
+=======
+<!-- Página de Login -->
+<template>
+  <div>
+    <h1>Login</h1>
+  </div>
+</template>
+
+<style scoped>
+>>>>>>> 500e3637087aabb719f56fad83e2b383c3b06027
 </style>

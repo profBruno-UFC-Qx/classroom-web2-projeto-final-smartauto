@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
@@ -230,4 +231,14 @@ const totalUsuarios = 15
     grid-template-columns: 1fr;
   }
 }
+=======
+<!-- Dashboard principal (área restrita) -->
+<template>
+  <div>
+    <h1>Dashboard</h1>
+  </div>
+</template>
+
+<style scoped>
+>>>>>>> 500e3637087aabb719f56fad83e2b383c3b06027
 </style>
