@@ -32,24 +32,22 @@ const router = createRouter({
       beforeEnter: authGuard
     },
 
-    // Rotas de Veículos (todos os usuários autenticados)
     {
       path: '/veiculos',
       name: 'veiculos',
       component: () => import('../views/VeiculosView/VeiculosListView.vue'),
-      beforeEnter: authGuard
-    },
-    {
-      path: '/veiculos/novo',
-      name: 'veiculos-novo',
-      component: () => import('../views/VeiculosView/VeiculoFormView.vue'),
-      beforeEnter: roleGuard([Role.ADMIN, Role.LOCADOR])
     },
     {
       path: '/veiculos/:id',
       name: 'veiculos-detalhes',
       component: () => import('../views/VeiculosView/VeiculoDetalhesView.vue'),
-      beforeEnter: authGuard
+    },
+    // Rotas de Veículos (todos os usuários autenticados)
+    {
+      path: '/veiculos/novo',
+      name: 'veiculos-novo',
+      component: () => import('../views/VeiculosView/VeiculoFormView.vue'),
+      beforeEnter: roleGuard([Role.ADMIN, Role.LOCADOR])
     },
     {
       path: '/veiculos/:id/editar',
