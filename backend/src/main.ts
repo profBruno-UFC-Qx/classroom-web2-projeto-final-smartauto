@@ -1,13 +1,14 @@
 import "reflect-metadata";
 import express, { Request, Response } from "express";
 import { createDbAndTables } from "./database/database";
+import authRouter from "./routes/auth";
 import categoriasRouter from "./routes/categorias";
 import usuariosRouter from "./routes/usuarios";
 import veiculosRouter from "./routes/veiculos";
 import locacoesRouter from "./routes/locacoes";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Middleware para parsing JSON
 app.use(express.json());
@@ -18,6 +19,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 // Registrar rotas
+app.use("/auth", authRouter);
 app.use("/categorias", categoriasRouter);
 app.use("/usuarios", usuariosRouter);
 app.use("/veiculos", veiculosRouter);

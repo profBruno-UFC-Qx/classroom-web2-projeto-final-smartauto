@@ -3,6 +3,7 @@ import { getConnection } from "../database/database";
 import { Locacao, StatusLocacao } from "../models/Locacao";
 import { Veiculo } from "../models/Veiculo";
 import { Usuario, Role } from "../models/Usuario";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 
@@ -12,8 +13,8 @@ function calcularValorTotal(dataInicio: Date, dataFim: Date, valorDiaria: number
   return dias * valorDiaria;
 }
 
-// GET /locacoes
-router.get("/", async (req: Request, res: Response) => {
+// GET /locacoes - Requer autenticação (todos os usuários autenticados)
+router.get("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const offset = parseInt(req.query.offset as string) || 0;
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
@@ -47,8 +48,48 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// POST /locacoes
-router.post("/", async (req: Request, res: Response) => {
+// GET /locacoes/me - Retorna apenas locações do usuário logado (se for CLIENTE)
+router.get("/me", requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Usuário não autenticado" });
+    }
+    
+    const offset = parseInt(req.query.offset as string) || 0;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+    
+    const repository = getConnection().getRepository(Locacao);
+    const locacoes = await repository
+      .createQueryBuilder("locacao")
+      .leftJoinAndSelect("locacao.locador", "locador")
+      .leftJoinAndSelect("locacao.cliente", "cliente")
+      .leftJoinAndSelect("locacao.veiculo", "veiculo")
+      .where("locacao.cliente_id = :clienteId", { clienteId: req.user.id })
+      .skip(offset)
+      .take(limit)
+      .getMany();
+    
+    // Adicionar valor_total calculado para cada locação
+    const locacoesComValorTotal = locacoes.map((locacao) => {
+      const valorTotal = calcularValorTotal(
+        new Date(locacao.data_inicio),
+        new Date(locacao.data_fim),
+        locacao.veiculo.valor_diaria
+      );
+      return {
+        ...locacao,
+        valor_total: valorTotal,
+      };
+    });
+    
+    res.json(locacoesComValorTotal);
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao listar locações" });
+  }
+});
+
+// POST /locacoes - Requer autenticação (todos os usuários autenticados)
+router.post("/", requireAuth, async (req: Request, res: Response) => {
   try {
     const { data_inicio, data_fim, cliente_id, locador_id, veiculo_id } = req.body;
     
@@ -114,8 +155,8 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// GET /locacoes/:id
-router.get("/:id", async (req: Request, res: Response) => {
+// GET /locacoes/:id - Requer autenticação (todos os usuários autenticados)
+router.get("/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const repository = getConnection().getRepository(Locacao);
@@ -145,8 +186,8 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// PUT /locacoes/:id
-router.put("/:id", async (req: Request, res: Response) => {
+// PUT /locacoes/:id - Requer autenticação e role LOCADOR ou ADMIN
+router.put("/:id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const repository = getConnection().getRepository(Locacao);
@@ -200,8 +241,8 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// PUT /locacoes/:id/aprovar
-router.put("/:id/aprovar", async (req: Request, res: Response) => {
+// PUT /locacoes/:id/aprovar - Requer autenticação e role LOCADOR ou ADMIN
+router.put("/:id/aprovar", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const repository = getConnection().getRepository(Locacao);
@@ -258,8 +299,8 @@ router.put("/:id/aprovar", async (req: Request, res: Response) => {
   }
 });
 
-// PUT /locacoes/:id/recusar
-router.put("/:id/recusar", async (req: Request, res: Response) => {
+// PUT /locacoes/:id/recusar - Requer autenticação e role LOCADOR ou ADMIN
+router.put("/:id/recusar", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const repository = getConnection().getRepository(Locacao);
@@ -311,8 +352,8 @@ router.put("/:id/recusar", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /locacoes/:id
-router.delete("/:id", async (req: Request, res: Response) => {
+// DELETE /locacoes/:id - Requer autenticação e role LOCADOR ou ADMIN
+router.delete("/:id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const repository = getConnection().getRepository(Locacao);

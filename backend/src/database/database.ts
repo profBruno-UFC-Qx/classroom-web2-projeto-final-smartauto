@@ -13,7 +13,7 @@ dotenv.config();
 // Configuração do banco de dados
 export const AppDataSource = new DataSource({
   type: "sqlite",
-  database: process.env.SQLITE_URL?.replace("sqlite:", "") || "./smartauto.db",
+  database: "./smartauto.db",
   synchronize: true, // Cria/atualiza tabelas automaticamente
   logging: false,
   entities: [
