@@ -3,10 +3,12 @@ import { getConnection } from "../database/database";
 import { Veiculo } from "../models/Veiculo";
 import { Categoria } from "../models/Categoria";
 import { CategoriaVeiculo } from "../models/CategoriaVeiculo";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { Role } from "../models/Usuario";
 
 const router = Router();
-// POST /veiculos
-router.post("/", async (req: Request, res: Response) => {
+// POST /veiculos - Requer autenticação e role LOCADOR ou ADMIN
+router.post("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const repository = getConnection().getRepository(Veiculo);
     const veiculo = repository.create(req.body);
@@ -83,8 +85,8 @@ router.get("/:veiculo_id", async (req: Request, res: Response) => {
   }
 });
 
-// PUT /veiculos/:veiculo_id
-router.put("/:veiculo_id", async (req: Request, res: Response) => {
+// PUT /veiculos/:veiculo_id - Requer autenticação e role LOCADOR ou ADMIN
+router.put("/:veiculo_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const veiculoId = parseInt(req.params.veiculo_id);
     const repository = getConnection().getRepository(Veiculo);
@@ -108,8 +110,8 @@ router.put("/:veiculo_id", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /veiculos/:veiculo_id
-router.delete("/:veiculo_id", async (req: Request, res: Response) => {
+// DELETE /veiculos/:veiculo_id - Requer autenticação e role LOCADOR ou ADMIN
+router.delete("/:veiculo_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const veiculoId = parseInt(req.params.veiculo_id);
     const repository = getConnection().getRepository(Veiculo);
@@ -126,8 +128,8 @@ router.delete("/:veiculo_id", async (req: Request, res: Response) => {
   }
 });
 
-// POST /veiculos/categoria/:veiculo_id
-router.post("/categoria/:veiculo_id", async (req: Request, res: Response) => {
+// POST /veiculos/categoria/:veiculo_id - Requer autenticação e role LOCADOR ou ADMIN
+router.post("/categoria/:veiculo_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const veiculoId = parseInt(req.params.veiculo_id);
     const { nome_categoria, descricao } = req.body;

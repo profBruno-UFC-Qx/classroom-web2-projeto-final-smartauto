@@ -1,11 +1,13 @@
 import { Router, Request, Response } from "express";
 import { getConnection } from "../database/database";
 import { Categoria } from "../models/Categoria";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { Role } from "../models/Usuario";
 
 const router = Router();
 
-// POST /categorias
-router.post("/", async (req: Request, res: Response) => {
+// POST /categorias - Requer autenticação e role LOCADOR ou ADMIN
+router.post("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { nome, descricao } = req.body;
     const repository = getConnection().getRepository(Categoria);
@@ -57,8 +59,8 @@ router.get("/:categoria_id", async (req: Request, res: Response) => {
   }
 });
 
-// PUT /categorias/:categoria_id
-router.put("/:categoria_id", async (req: Request, res: Response) => {
+// PUT /categorias/:categoria_id - Requer autenticação e role LOCADOR ou ADMIN
+router.put("/:categoria_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const categoriaId = parseInt(req.params.categoria_id);
     const repository = getConnection().getRepository(Categoria);
@@ -80,8 +82,8 @@ router.put("/:categoria_id", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /categorias/:categoria_id
-router.delete("/:categoria_id", async (req: Request, res: Response) => {
+// DELETE /categorias/:categoria_id - Requer autenticação e role LOCADOR ou ADMIN
+router.delete("/:categoria_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const categoriaId = parseInt(req.params.categoria_id);
     const repository = getConnection().getRepository(Categoria);
