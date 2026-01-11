@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import express, { Request, Response } from "express";
+import cors from "cors";
 import { createDbAndTables } from "./database/database";
 import authRouter from "./routes/auth";
 import categoriasRouter from "./routes/categorias";
@@ -8,7 +9,15 @@ import veiculosRouter from "./routes/veiculos";
 import locacoesRouter from "./routes/locacoes";
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
+
+// Configuração CORS
+app.use(cors({
+  origin: 'http://localhost:5173', // Origem do frontend
+  credentials: true, // Permitir cookies/credenciais
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Middleware para parsing JSON
 app.use(express.json());
