@@ -27,7 +27,7 @@ router.post("/register", async (req: Request, res: Response) => {
     } = req.body;
 
     // Validar campos obrigatórios
-    if (!nome || !usuario || !senha || !telefone || !email || !uf || !cidade || !logradouro || numero === undefined) {
+    if (!nome || !usuario || !senha || !email) {
       return res.status(400).json({ 
         error: "Todos os campos são obrigatórios" 
       });
