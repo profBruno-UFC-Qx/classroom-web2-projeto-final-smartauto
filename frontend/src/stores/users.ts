@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { apiService } from '@/services/api'
-import type { User } from '@/types'
+import type { User, CreateUserData, UpdateUserData } from '@/types'
 
 export const useUserStore = defineStore('users', () => {
   const users = ref<User[]>([])
@@ -32,7 +32,7 @@ export const useUserStore = defineStore('users', () => {
     }
   }
 
-  async function createUser(userData: any) {
+  async function createUser(userData: CreateUserData) {
     loading.value = true
     error.value = null
     try {
@@ -51,7 +51,7 @@ export const useUserStore = defineStore('users', () => {
     }
   }
 
-  async function updateUser(id: number, userData: any) {
+  async function updateUser(id: number, userData: UpdateUserData) {
     loading.value = true
     error.value = null
     try {

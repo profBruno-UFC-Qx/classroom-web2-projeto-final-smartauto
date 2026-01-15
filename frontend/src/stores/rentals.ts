@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { apiService } from '@/services/api'
-import type { Locacao } from '@/types'
+import type { Locacao, CreateRentalData, UpdateRentalData } from '@/types'
 
 export const useRentalStore = defineStore('rentals', () => {
   const rentals = ref<Locacao[]>([])
@@ -33,7 +33,7 @@ export const useRentalStore = defineStore('rentals', () => {
     }
   }
 
-  async function createRental(rentalData: any) {
+  async function createRental(rentalData: CreateRentalData) {
     loading.value = true
     error.value = null
     try {
@@ -52,7 +52,7 @@ export const useRentalStore = defineStore('rentals', () => {
     }
   }
 
-  async function updateRental(id: number, rentalData: any) {
+  async function updateRental(id: number, rentalData: UpdateRentalData) {
     loading.value = true
     error.value = null
     try {

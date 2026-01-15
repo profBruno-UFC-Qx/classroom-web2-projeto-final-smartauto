@@ -1,7 +1,10 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { apiService } from '@/services/api'
-import type { User, AuthResponse, UserRole } from '@/types'
+import { UserRole } from '@/types'
+import type { User, AuthResponse } from '@/types'
+
+type CreateUserData = Omit<User, 'id'>
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -41,7 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(userData: any) {
+  async function register(userData: CreateUserData) {
     loading.value = true
     error.value = null
     try {

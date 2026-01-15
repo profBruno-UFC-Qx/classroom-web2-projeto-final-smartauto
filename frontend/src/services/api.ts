@@ -1,8 +1,7 @@
 import type { ApiResponse, PaginatedResponse } from '@/types'
 
-const API_BASE_URL = 'http://localhost:3000/api'
-
 export class ApiService {
+  private baseURL = 'http://localhost:3000/api'
   private token: string | null = localStorage.getItem('auth_token')
 
   setToken(token: string) {
@@ -26,24 +25,24 @@ export class ApiService {
   }
 
   async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'GET',
       headers: this.getHeaders()
     })
     return response.json()
   }
 
-  async post<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  async post<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(body)
     })
-    return response.json()
+    return await response.json()
   }
 
-  async put<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  async put<T>(endpoint: string, body: unknown): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'PUT',
       headers: this.getHeaders(),
       body: JSON.stringify(body)
@@ -52,7 +51,7 @@ export class ApiService {
   }
 
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'DELETE',
       headers: this.getHeaders()
     })

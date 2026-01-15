@@ -10,8 +10,8 @@ export interface User {
   email: string
   senha?: string
   cpf: string
-  telefone: string
-  endereco: string
+  telefone?: string
+  endereco?: string
   papel: UserRole
 }
 
@@ -33,8 +33,12 @@ export interface Veiculo {
   modelo: string
   ano: number
   placa: string
+  cor?: string
+  quilometragem?: number
+  valor_diaria: number
   status: 'disponivel' | 'locado' | 'manutencao'
-  categoriaVeiculoId: number
+  categoria_id: number
+  categoriaVeiculoId?: number
 }
 
 export interface Locacao {
@@ -62,3 +66,12 @@ export interface PaginatedResponse<T> {
   limite: number
   totalPaginas: number
 }
+
+export type CreateUserData = Omit<User, 'id'>
+export type UpdateUserData = Partial<CreateUserData>
+
+export type CreateVehicleData = Omit<Veiculo, 'id'>
+export type UpdateVehicleData = Partial<CreateVehicleData>
+
+export type CreateRentalData = Omit<Locacao, 'id'>
+export type UpdateRentalData = Partial<CreateRentalData>
