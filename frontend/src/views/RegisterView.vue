@@ -15,7 +15,7 @@ const confirmarSenha = ref('')
 const cpf = ref('')
 const telefone = ref('')
 const endereco = ref('')
-const papel = ref<UserRoleType>(UserRole.CLIENTE)
+const papel = ref<UserRoleType | ''>('')
 const errorMessage = ref('')
 const showPassword = ref(false)
 const showConfirm = ref(false)
@@ -77,7 +77,7 @@ async function handleRegister() {
             <v-form @submit.prevent="handleRegister">
               <v-text-field
                 v-model="nome"
-                label="Nome completo *"
+                label="Nome completo"
                 placeholder="João Silva"
                 outlined
                 class="mb-2"
@@ -87,7 +87,7 @@ async function handleRegister() {
 
               <v-text-field
                 v-model="email"
-                label="E-mail *"
+                label="E-mail"
                 type="email"
                 placeholder="seu@email.com"
                 outlined
@@ -98,7 +98,7 @@ async function handleRegister() {
 
               <v-text-field
                 v-model="cpf"
-                label="CPF *"
+                label="CPF"
                 placeholder="000.000.000-00"
                 outlined
                 class="mb-2"
@@ -126,7 +126,7 @@ async function handleRegister() {
 
               <v-text-field
                 v-model="senha"
-                label="Senha *"
+                label="Senha"
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="Mínimo 6 caracteres"
                 outlined
@@ -139,7 +139,7 @@ async function handleRegister() {
 
               <v-text-field
                 v-model="confirmarSenha"
-                label="Confirmar senha *"
+                label="Confirmar senha"
                 :type="showConfirm ? 'text' : 'password'"
                 placeholder="Digite a senha novamente"
                 outlined
@@ -157,6 +157,7 @@ async function handleRegister() {
                 outlined
                 class="mb-3"
                 density="compact"
+                clearable
               ></v-select>
 
               <v-alert v-if="errorMessage" type="error" class="mb-4">
