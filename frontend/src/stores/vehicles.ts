@@ -11,19 +11,53 @@ export const useVehicleStore = defineStore('vehicles', () => {
   const total = ref(0)
   const page = ref(1)
   const limit = ref(10)
+  const hasNext = ref(false)
 
-  const totalPages = computed(() => Math.ceil(total.value / limit.value))
+  const filters = ref({
+    modelo: '',
+    marca: '',
+    ano: '' as string | number,
+    minPreco: '' as string | number,
+    maxPreco: '' as string | number,
+    categoria: '',
+    disponiveis: 'true' as 'true' | 'false' | 'all'
+  })
+
+  const totalPages = computed(() => {
+    // Quando o backend não retorna total, estimamos: se houve próxima página, acrescenta 1
+    const base = Math.ceil(total.value / limit.value) || 1
+    return hasNext.value ? base + 1 : base
+  })
   const availableVehicles = computed(() => vehicles.value.filter(v => v.status === 'disponivel'))
+
+  function buildQuery(pageNum: number) {
+    const params = new URLSearchParams()
+    const offset = (pageNum - 1) * limit.value
+    params.set('offset', String(offset))
+    params.set('limit', String(limit.value))
+
+    if (filters.value.modelo) params.set('modelo', filters.value.modelo)
+    if (filters.value.marca) params.set('marca', filters.value.marca)
+    if (filters.value.ano) params.set('ano', String(filters.value.ano))
+    if (filters.value.minPreco) params.set('min_preco', String(filters.value.minPreco))
+    if (filters.value.maxPreco) params.set('max_preco', String(filters.value.maxPreco))
+    if (filters.value.categoria) params.set('categoria', filters.value.categoria)
+    if (filters.value.disponiveis !== 'all') params.set('disponiveis', filters.value.disponiveis)
+
+    return params.toString()
+  }
 
   async function fetchVehicles(pageNum = 1) {
     loading.value = true
     error.value = null
     try {
-      const response = await apiService.getList<Veiculo>('/veiculos', pageNum, limit.value)
+      const queryString = buildQuery(pageNum)
+      const response = await apiService.get<Veiculo[]>(`/veiculos?${queryString}`)
       if (response.success && response.data) {
-        vehicles.value = response.data.data
-        total.value = response.data.total
+        vehicles.value = response.data
+        total.value = (pageNum - 1) * limit.value + response.data.length
         page.value = pageNum
+        hasNext.value = response.data.length === limit.value
       } else {
         error.value = response.message || 'Erro ao carregar veículos'
       }
@@ -111,8 +145,10 @@ export const useVehicleStore = defineStore('vehicles', () => {
     total,
     page,
     limit,
+    hasNext,
     totalPages,
     availableVehicles,
+    filters,
     fetchVehicles,
     fetchCategories,
     createVehicle,

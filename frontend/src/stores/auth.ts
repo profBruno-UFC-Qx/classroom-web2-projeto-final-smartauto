@@ -49,6 +49,9 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     try {
       const response = await apiService.post('/usuarios', userData)
+      if (!response.success) {
+        error.value = response.message || 'Erro ao registrar'
+      }
       return response.success
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao registrar'

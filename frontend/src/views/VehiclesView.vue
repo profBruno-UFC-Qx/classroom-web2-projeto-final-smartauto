@@ -30,6 +30,21 @@ const statusOptions = [
   { title: 'Manutenção', value: 'manutencao' }
 ]
 
+function applyFilters() {
+  vehicleStore.fetchVehicles(1)
+}
+
+function clearFilters() {
+  vehicleStore.filters.modelo = ''
+  vehicleStore.filters.marca = ''
+  vehicleStore.filters.ano = ''
+  vehicleStore.filters.minPreco = ''
+  vehicleStore.filters.maxPreco = ''
+  vehicleStore.filters.categoria = ''
+  vehicleStore.filters.disponiveis = 'true'
+  vehicleStore.fetchVehicles(1)
+}
+
 onMounted(async () => {
   await vehicleStore.fetchVehicles()
   await vehicleStore.fetchCategories()
@@ -130,6 +145,55 @@ async function changePage(newPage: number) {
       </v-col>
     </v-row>
 
+    <v-card class="mb-6" variant="outlined">
+      <v-card-text>
+        <v-row class="gy-2">
+          <v-col cols="12" sm="6" md="4">
+            <v-text-field v-model="vehicleStore.filters.modelo" label="Modelo" density="compact" clearable></v-text-field>
+          </v-col>
+          <v-col cols="12" sm="6" md="4">
+            <v-text-field v-model="vehicleStore.filters.marca" label="Marca" density="compact" clearable></v-text-field>
+          </v-col>
+          <v-col cols="12" sm="6" md="4">
+            <v-text-field v-model="vehicleStore.filters.ano" label="Ano" type="number" density="compact" clearable></v-text-field>
+          </v-col>
+          <v-col cols="12" sm="6" md="4">
+            <v-text-field v-model="vehicleStore.filters.minPreco" label="Preço mín." type="number" density="compact" clearable></v-text-field>
+          </v-col>
+          <v-col cols="12" sm="6" md="4">
+            <v-text-field v-model="vehicleStore.filters.maxPreco" label="Preço máx." type="number" density="compact" clearable></v-text-field>
+          </v-col>
+          <v-col cols="12" sm="6" md="4">
+            <v-select
+              v-model="vehicleStore.filters.categoria"
+              :items="vehicleStore.categories"
+              item-title="nome"
+              item-value="nome"
+              label="Categoria"
+              density="compact"
+              clearable
+            ></v-select>
+          </v-col>
+          <v-col cols="12" sm="6" md="4">
+            <v-select
+              v-model="vehicleStore.filters.disponiveis"
+              :items="[
+                { title: 'Apenas disponíveis', value: 'true' },
+                { title: 'Indisponíveis', value: 'false' },
+                { title: 'Todos', value: 'all' }
+              ]"
+              label="Disponibilidade"
+              density="compact"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" class="d-flex gap-3 justify-end">
+            <v-btn variant="outlined" color="secondary" @click="clearFilters">Limpar</v-btn>
+            <v-btn color="primary" @click="applyFilters">Filtrar</v-btn>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
     <v-progress-linear v-if="vehicleStore.loading" indeterminate></v-progress-linear>
 
     <v-alert v-if="vehicleStore.error" type="error" class="mb-4">
@@ -185,11 +249,11 @@ async function changePage(newPage: number) {
           Anterior
         </v-btn>
         <span class="text-subtitle-2">
-          Página {{ vehicleStore.page }} de {{ vehicleStore.totalPages }}
+          Página {{ vehicleStore.page }}
         </span>
         <v-btn
           @click="changePage(vehicleStore.page + 1)"
-          :disabled="vehicleStore.page === vehicleStore.totalPages"
+          :disabled="!vehicleStore.hasNext"
         >
           Próxima
         </v-btn>

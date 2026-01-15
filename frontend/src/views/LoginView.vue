@@ -59,7 +59,7 @@ async function handleLogin() {
                 outlined
                 class="mb-3"
                 density="compact"
-                :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
+                append-icon="mdi-eye"
                 @click:append="showPassword = !showPassword"
                 required
               ></v-text-field>

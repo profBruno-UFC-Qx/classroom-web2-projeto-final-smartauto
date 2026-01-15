@@ -132,7 +132,7 @@ async function handleRegister() {
                 outlined
                 class="mb-2"
                 density="compact"
-                :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
+                append-icon="mdi-eye"
                 @click:append="showPassword = !showPassword"
                 required
               ></v-text-field>
@@ -145,7 +145,7 @@ async function handleRegister() {
                 outlined
                 class="mb-2"
                 density="compact"
-                :append-icon="showConfirm ? 'mdi-eye' : 'mdi-eye-off'"
+                append-icon="mdi-eye"
                 @click:append="showConfirm = !showConfirm"
                 required
               ></v-text-field>
