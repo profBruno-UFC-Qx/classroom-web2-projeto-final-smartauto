@@ -24,6 +24,12 @@ const formData = ref({
 
 const canManage = computed(() => authStore.isAdmin || authStore.isFuncionario)
 
+const statusOptions = [
+  { title: 'Disponível', value: 'disponivel' },
+  { title: 'Locado', value: 'locado' },
+  { title: 'Manutenção', value: 'manutencao' }
+]
+
 onMounted(async () => {
   await vehicleStore.fetchVehicles()
   await vehicleStore.fetchCategories()
@@ -84,13 +90,13 @@ async function handleDelete(id: number) {
   }
 }
 
-function getStatusBadge(status: string) {
-  const badges = {
-    disponivel: { class: 'status-disponivel', text: 'Disponível' },
-    locado: { class: 'status-locado', text: 'Locado' },
-    manutencao: { class: 'status-manutencao', text: 'Manutenção' }
+function getStatusColor(status: string) {
+  const colors: Record<string, string> = {
+    disponivel: 'success',
+    locado: 'error',
+    manutencao: 'warning'
   }
-  return badges[status as keyof typeof badges] || badges.disponivel
+  return colors[status] || 'info'
 }
 
 async function changePage(newPage: number) {
@@ -99,418 +105,216 @@ async function changePage(newPage: number) {
 </script>
 
 <template>
-  <div class="vehicles-container">
-    <header class="header">
-      <h1>Veículos</h1>
-      <button v-if="canManage" @click="openCreateModal" class="btn-primary">
-        + Novo Veículo
-      </button>
-    </header>
+  <v-container fluid class="py-6 px-md-6 px-3">
+    <v-row class="mb-6">
+      <v-col cols="12" class="d-flex justify-space-between align-center flex-wrap gap-4">
+        <h1 class="text-h4 text-md-h3">Veículos</h1>
+        <v-btn
+          v-if="canManage"
+          color="primary"
+          @click="openCreateModal"
+          size="large"
+          class="d-none d-sm-flex"
+        >
+          <v-icon>mdi-plus</v-icon>
+          Novo Veículo
+        </v-btn>
+        <v-btn
+          v-if="canManage"
+          color="primary"
+          @click="openCreateModal"
+          icon="mdi-plus"
+          size="small"
+          class="d-sm-none"
+        ></v-btn>
+      </v-col>
+    </v-row>
 
-    <div v-if="vehicleStore.loading" class="loading">
-      Carregando veículos...
-    </div>
+    <v-progress-linear v-if="vehicleStore.loading" indeterminate></v-progress-linear>
 
-    <div v-else-if="vehicleStore.error" class="error">
+    <v-alert v-if="vehicleStore.error" type="error" class="mb-4">
       {{ vehicleStore.error }}
+    </v-alert>
+
+    <v-row v-if="!vehicleStore.loading && vehicleStore.vehicles.length > 0" class="mb-8">
+      <v-col v-for="vehicle in vehicleStore.vehicles" :key="vehicle.id" cols="12" sm="6" md="4" lg="3">
+        <v-card class="h-100" hover>
+          <v-card-title class="text-subtitle2 text-sm-h6">
+            {{ vehicle.marca }} {{ vehicle.modelo }}
+          </v-card-title>
+          <v-chip :color="getStatusColor(vehicle.status)" text-color="white" class="ma-4" size="small">
+            {{ vehicle.status }}
+          </v-chip>
+          <v-card-text>
+            <v-list density="compact">
+              <v-list-item>
+                <v-list-item-subtitle class="text-caption text-sm-body2">Ano: {{ vehicle.ano }}</v-list-item-subtitle>
+              </v-list-item>
+              <v-list-item>
+                <v-list-item-subtitle class="text-caption text-sm-body2">Placa: {{ vehicle.placa }}</v-list-item-subtitle>
+              </v-list-item>
+              <v-list-item>
+                <v-list-item-subtitle class="text-caption text-sm-body2">Cor: {{ vehicle.cor || 'N/A' }}</v-list-item-subtitle>
+              </v-list-item>
+              <v-list-item>
+                <v-list-item-subtitle class="text-caption text-sm-body2">Km: {{ vehicle.quilometragem }}</v-list-item-subtitle>
+              </v-list-item>
+              <v-list-item>
+                <v-list-item-subtitle class="text-primary font-weight-bold text-caption text-sm-body2">R$ {{ vehicle.valor_diaria.toFixed(2) }}/dia</v-list-item-subtitle>
+              </v-list-item>
+            </v-list>
+          </v-card-text>
+          <v-card-actions v-if="canManage" class="gap-2 pa-4 flex-column flex-sm-row">
+            <v-btn color="primary" variant="outlined" @click="openEditModal(vehicle)" block class="text-caption text-sm-body2">Editar</v-btn>
+            <v-btn color="error" variant="outlined" @click="vehicle.id && handleDelete(vehicle.id)" block class="text-caption text-sm-body2" :disabled="!vehicle.id">Excluir</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <div v-if="!vehicleStore.loading && vehicleStore.vehicles.length === 0" class="text-center py-8">
+      <p class="text-grey">Nenhum veículo encontrado</p>
     </div>
 
-    <div v-else class="vehicles-grid">
-      <div v-for="vehicle in vehicleStore.vehicles" :key="vehicle.id" class="vehicle-card">
-        <div class="vehicle-header">
-          <h3>{{ vehicle.marca }} {{ vehicle.modelo }}</h3>
-          <span :class="['status-badge', getStatusBadge(vehicle.status).class]">
-            {{ getStatusBadge(vehicle.status).text }}
-          </span>
-        </div>
-        
-        <div class="vehicle-details">
-          <p><strong>Ano:</strong> {{ vehicle.ano }}</p>
-          <p><strong>Placa:</strong> {{ vehicle.placa }}</p>
-          <p v-if="vehicle.cor"><strong>Cor:</strong> {{ vehicle.cor }}</p>
-          <p><strong>Diária:</strong> R$ {{ vehicle.valor_diaria.toFixed(2) }}</p>
-        </div>
-
-        <div v-if="canManage" class="vehicle-actions">
-          <button @click="openEditModal(vehicle)" class="btn-edit">
-            Editar
-          </button>
-          <button @click="vehicle.id && handleDelete(vehicle.id)" class="btn-delete" :disabled="!vehicle.id">
-            Excluir
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="vehicleStore.totalPages > 1" class="pagination">
-      <button 
-        @click="changePage(vehicleStore.page - 1)" 
-        :disabled="vehicleStore.page === 1"
-        class="btn-page"
-      >
-        Anterior
-      </button>
-      <span class="page-info">
-        Página {{ vehicleStore.page }} de {{ vehicleStore.totalPages }}
-      </span>
-      <button 
-        @click="changePage(vehicleStore.page + 1)" 
-        :disabled="vehicleStore.page === vehicleStore.totalPages"
-        class="btn-page"
-      >
-        Próxima
-      </button>
-    </div>
+    <v-row v-if="vehicleStore.totalPages > 1" class="mt-8 justify-center">
+      <v-col cols="auto" class="d-flex gap-4 align-center">
+        <v-btn
+          @click="changePage(vehicleStore.page - 1)"
+          :disabled="vehicleStore.page === 1"
+        >
+          Anterior
+        </v-btn>
+        <span class="text-subtitle-2">
+          Página {{ vehicleStore.page }} de {{ vehicleStore.totalPages }}
+        </span>
+        <v-btn
+          @click="changePage(vehicleStore.page + 1)"
+          :disabled="vehicleStore.page === vehicleStore.totalPages"
+        >
+          Próxima
+        </v-btn>
+      </v-col>
+    </v-row>
 
     <!-- Modal -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <h2>{{ editingVehicle ? 'Editar Veículo' : 'Novo Veículo' }}</h2>
-        
-        <form @submit.prevent="handleSubmit">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="marca">Marca *</label>
-              <input id="marca" v-model="formData.marca" required />
-            </div>
-            <div class="form-group">
-              <label for="modelo">Modelo *</label>
-              <input id="modelo" v-model="formData.modelo" required />
-            </div>
-          </div>
+    <v-dialog v-model="showModal" max-width="600">
+      <v-card>
+        <v-card-title class="text-h5 pa-6">
+          {{ editingVehicle ? 'Editar Veículo' : 'Novo Veículo' }}
+        </v-card-title>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="ano">Ano *</label>
-              <input id="ano" v-model.number="formData.ano" type="number" required />
-            </div>
-            <div class="form-group">
-              <label for="placa">Placa *</label>
-              <input id="placa" v-model="formData.placa" required />
-            </div>
-          </div>
+        <v-card-text class="pa-6">
+          <v-form @submit.prevent="handleSubmit">
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.marca"
+                  label="Marca *"
+                  outlined
+                  required
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.modelo"
+                  label="Modelo *"
+                  outlined
+                  required
+                ></v-text-field>
+              </v-col>
+            </v-row>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="cor">Cor</label>
-              <input id="cor" v-model="formData.cor" />
-            </div>
-            <div class="form-group">
-              <label for="quilometragem">Quilometragem</label>
-              <input id="quilometragem" v-model.number="formData.quilometragem" type="number" />
-            </div>
-          </div>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model.number="formData.ano"
+                  label="Ano *"
+                  type="number"
+                  outlined
+                  required
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.placa"
+                  label="Placa *"
+                  outlined
+                  required
+                ></v-text-field>
+              </v-col>
+            </v-row>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="valor_diaria">Valor Diária *</label>
-              <input id="valor_diaria" v-model.number="formData.valor_diaria" type="number" step="0.01" required />
-            </div>
-            <div class="form-group">
-              <label for="status">Status *</label>
-              <select id="status" v-model="formData.status" required>
-                <option value="disponivel">Disponível</option>
-                <option value="locado">Locado</option>
-                <option value="manutencao">Manutenção</option>
-              </select>
-            </div>
-          </div>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.cor"
+                  label="Cor"
+                  outlined
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model.number="formData.quilometragem"
+                  label="Quilometragem"
+                  type="number"
+                  outlined
+                ></v-text-field>
+              </v-col>
+            </v-row>
 
-          <div class="form-group">
-            <label for="categoria">Categoria *</label>
-            <select id="categoria" v-model.number="formData.categoria_id" required>
-              <option v-for="cat in vehicleStore.categories" :key="cat.id" :value="cat.id">
-                {{ cat.nome }}
-              </option>
-            </select>
-          </div>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model.number="formData.valor_diaria"
+                  label="Valor Diária *"
+                  type="number"
+                  step="0.01"
+                  outlined
+                  required
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="formData.status"
+                  label="Status *"
+                  :items="statusOptions"
+                  outlined
+                  required
+                ></v-select>
+              </v-col>
+            </v-row>
 
-          <div v-if="vehicleStore.error" class="error-message">
-            {{ vehicleStore.error }}
-          </div>
+            <v-select
+              v-model.number="formData.categoria_id"
+              label="Categoria *"
+              :items="vehicleStore.categories"
+              item-title="nome"
+              item-value="id"
+              outlined
+              required
+              class="mb-4"
+            ></v-select>
 
-          <div class="modal-actions">
-            <button type="button" @click="closeModal" class="btn-cancel">
-              Cancelar
-            </button>
-            <button type="submit" class="btn-submit" :disabled="vehicleStore.loading">
-              {{ vehicleStore.loading ? 'Salvando...' : 'Salvar' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+            <v-alert v-if="vehicleStore.error" type="error" class="mb-4">
+              {{ vehicleStore.error }}
+            </v-alert>
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions class="pa-6 gap-4">
+          <v-btn @click="closeModal" variant="outlined">
+            Cancelar
+          </v-btn>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="primary"
+            @click="handleSubmit"
+            :loading="vehicleStore.loading"
+          >
+            Salvar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-container>
 </template>
-
-<style scoped>
-.vehicles-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.header h1 {
-  font-size: 2rem;
-  color: #2d3748;
-  margin: 0;
-}
-
-.btn-primary {
-  padding: 0.75rem 1.5rem;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-primary:hover {
-  background: #5568d3;
-}
-
-.loading, .error {
-  text-align: center;
-  padding: 2rem;
-  color: #718096;
-}
-
-.error {
-  color: #c53030;
-}
-
-.vehicles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.vehicle-card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 1.5rem;
-  transition: box-shadow 0.2s;
-}
-
-.vehicle-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.vehicle-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
-  margin-bottom: 1rem;
-}
-
-.vehicle-header h3 {
-  font-size: 1.25rem;
-  color: #2d3748;
-  margin: 0;
-}
-
-.status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.status-disponivel {
-  background: #c6f6d5;
-  color: #22543d;
-}
-
-.status-locado {
-  background: #fed7d7;
-  color: #742a2a;
-}
-
-.status-manutencao {
-  background: #feebc8;
-  color: #7c2d12;
-}
-
-.vehicle-details {
-  margin-bottom: 1rem;
-}
-
-.vehicle-details p {
-  margin: 0.5rem 0;
-  color: #4a5568;
-}
-
-.vehicle-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-edit, .btn-delete {
-  flex: 1;
-  padding: 0.5rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: opacity 0.2s;
-}
-
-.btn-edit {
-  background: #48bb78;
-  color: white;
-}
-
-.btn-delete {
-  background: #f56565;
-  color: white;
-}
-
-.btn-edit:hover, .btn-delete:hover {
-  opacity: 0.8;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.btn-page {
-  padding: 0.5rem 1rem;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-page:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.page-info {
-  color: #4a5568;
-  font-weight: 500;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-content h2 {
-  margin: 0 0 1.5rem 0;
-  color: #2d3748;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #2d3748;
-  font-weight: 500;
-  font-size: 0.9rem;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 1rem;
-  box-sizing: border-box;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.error-message {
-  background: #fed7d7;
-  color: #c53030;
-  padding: 0.75rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.btn-cancel, .btn-submit {
-  flex: 1;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.btn-cancel {
-  background: #e2e8f0;
-  color: #2d3748;
-}
-
-.btn-submit {
-  background: #667eea;
-  color: white;
-}
-
-.btn-cancel:hover, .btn-submit:hover {
-  opacity: 0.8;
-}
-
-.btn-submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-</style>

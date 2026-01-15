@@ -17,6 +17,14 @@ const telefone = ref('')
 const endereco = ref('')
 const papel = ref<UserRoleType>(UserRole.CLIENTE)
 const errorMessage = ref('')
+const showPassword = ref(false)
+const showConfirm = ref(false)
+
+const papelOptions = [
+  { title: 'Cliente', value: UserRole.CLIENTE },
+  { title: 'Funcionário', value: UserRole.FUNCIONARIO },
+  { title: 'Administrador', value: UserRole.ADMIN }
+]
 
 async function handleRegister() {
   errorMessage.value = ''
@@ -61,223 +69,122 @@ function goToLogin() {
 </script>
 
 <template>
-  <div class="register-container">
-    <div class="register-card">
-      <h1>Criar Conta</h1>
-      <p class="subtitle">Cadastre-se no SmartAuto</p>
+  <v-container fluid class="h-100 d-flex align-center justify-center px-3 px-sm-4 pt-16">
+    <v-row class="w-100 ma-0">
+      <v-col cols="12" sm="10" md="8" lg="6" class="mx-auto">
+        <v-card class="pa-6 pa-sm-8" elevation="10">
+          <h1 class="mb-2 text-center text-h4">Criar Conta</h1>
+          <p class="subtitle mb-6 text-center text-grey">Cadastre-se no SmartAuto</p>
 
-      <form @submit.prevent="handleRegister">
-        <div class="form-group">
-          <label for="nome">Nome completo *</label>
-          <input 
-            id="nome"
-            v-model="nome" 
-            type="text" 
-            placeholder="João Silva"
-            required
-          />
-        </div>
+          <v-card-text>
+            <v-form @submit.prevent="handleRegister">
+              <v-text-field
+                v-model="nome"
+                label="Nome completo *"
+                placeholder="João Silva"
+                outlined
+                class="mb-3"
+                required
+              ></v-text-field>
 
-        <div class="form-group">
-          <label for="email">E-mail *</label>
-          <input 
-            id="email"
-            v-model="email" 
-            type="email" 
-            placeholder="seu@email.com"
-            required
-          />
-        </div>
+              <v-text-field
+                v-model="email"
+                label="E-mail *"
+                type="email"
+                placeholder="seu@email.com"
+                outlined
+                class="mb-3"
+                required
+              ></v-text-field>
 
-        <div class="form-group">
-          <label for="cpf">CPF *</label>
-          <input 
-            id="cpf"
-            v-model="cpf" 
-            type="text" 
-            placeholder="000.000.000-00"
-            required
-          />
-        </div>
+              <v-text-field
+                v-model="cpf"
+                label="CPF *"
+                placeholder="000.000.000-00"
+                outlined
+                class="mb-3"
+                required
+              ></v-text-field>
 
-        <div class="form-group">
-          <label for="telefone">Telefone</label>
-          <input 
-            id="telefone"
-            v-model="telefone" 
-            type="tel" 
-            placeholder="(00) 00000-0000"
-          />
-        </div>
+              <v-text-field
+                v-model="telefone"
+                label="Telefone"
+                placeholder="(00) 00000-0000"
+                outlined
+                class="mb-3"
+              ></v-text-field>
 
-        <div class="form-group">
-          <label for="endereco">Endereço</label>
-          <input 
-            id="endereco"
-            v-model="endereco" 
-            type="text" 
-            placeholder="Rua, número, bairro"
-          />
-        </div>
+              <v-text-field
+                v-model="endereco"
+                label="Endereço"
+                placeholder="Rua, número, bairro"
+                outlined
+                class="mb-3"
+              ></v-text-field>
 
-        <div class="form-group">
-          <label for="senha">Senha *</label>
-          <input 
-            id="senha"
-            v-model="senha" 
-            type="password" 
-            placeholder="Mínimo 6 caracteres"
-            required
-          />
-        </div>
+              <v-text-field
+                v-model="senha"
+                label="Senha *"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="Mínimo 6 caracteres"
+                outlined
+                class="mb-3"
+                :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
+                @click:append="showPassword = !showPassword"
+                required
+              ></v-text-field>
 
-        <div class="form-group">
-          <label for="confirmar">Confirmar senha *</label>
-          <input 
-            id="confirmar"
-            v-model="confirmarSenha" 
-            type="password" 
-            placeholder="Digite a senha novamente"
-            required
-          />
-        </div>
+              <v-text-field
+                v-model="confirmarSenha"
+                label="Confirmar senha *"
+                :type="showConfirm ? 'text' : 'password'"
+                placeholder="Digite a senha novamente"
+                outlined
+                class="mb-3"
+                :append-icon="showConfirm ? 'mdi-eye' : 'mdi-eye-off'"
+                @click:append="showConfirm = !showConfirm"
+                required
+              ></v-text-field>
 
-        <div class="form-group">
-          <label for="papel">Tipo de conta</label>
-          <select id="papel" v-model="papel">
-            <option value="cliente">Cliente</option>
-            <option value="funcionario">Funcionário</option>
-            <option value="admin">Administrador</option>
-          </select>
-        </div>
+              <v-select
+                v-model="papel"
+                label="Tipo de conta"
+                :items="papelOptions"
+                outlined
+                class="mb-4"
+              ></v-select>
 
-        <div v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
+              <v-alert v-if="errorMessage" type="error" class="mb-4">
+                {{ errorMessage }}
+              </v-alert>
 
-        <button type="submit" class="btn-register" :disabled="authStore.loading">
-          {{ authStore.loading ? 'Criando conta...' : 'Criar Conta' }}
-        </button>
-      </form>
+              <v-btn
+                type="submit"
+                color="primary"
+                class="w-100 mb-4"
+                size="large"
+                :loading="authStore.loading"
+              >
+                {{ authStore.loading ? 'Criando conta...' : 'Criar Conta' }}
+              </v-btn>
+            </v-form>
+          </v-card-text>
 
-      <div class="footer">
-        <p>Já tem uma conta? 
-          <a @click="goToLogin" class="link">Faça login</a>
-        </p>
-      </div>
-    </div>
-  </div>
+          <v-divider></v-divider>
+
+          <v-card-text class="text-center py-4">
+            <span>Já tem uma conta?</span>
+            <v-btn
+              text
+              color="primary"
+              @click="goToLogin"
+              class="ml-2"
+            >
+              Faça login
+            </v-btn>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
-
-<style scoped>
-.register-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem;
-}
-
-.register-card {
-  background: white;
-  padding: 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-h1 {
-  font-size: 2rem;
-  color: #2d3748;
-  margin: 0 0 0.5rem 0;
-  text-align: center;
-}
-
-.subtitle {
-  text-align: center;
-  color: #718096;
-  margin: 0 0 2rem 0;
-}
-
-.form-group {
-  margin-bottom: 1.25rem;
-}
-
-label {
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #2d3748;
-  font-weight: 500;
-  font-size: 0.9rem;
-}
-
-input, select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-}
-
-input:focus, select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.error-message {
-  background: #fed7d7;
-  color: #c53030;
-  padding: 0.75rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
-
-.btn-register {
-  width: 100%;
-  padding: 0.875rem;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
-  margin-top: 0.5rem;
-}
-
-.btn-register:hover:not(:disabled) {
-  background: #5568d3;
-  transform: translateY(-1px);
-}
-
-.btn-register:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.footer {
-  margin-top: 1.5rem;
-  text-align: center;
-  color: #718096;
-}
-
-.link {
-  color: #667eea;
-  cursor: pointer;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.link:hover {
-  text-decoration: underline;
-}
-</style>
