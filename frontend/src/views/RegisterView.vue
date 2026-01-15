@@ -62,28 +62,26 @@ async function handleRegister() {
     errorMessage.value = authStore.error || 'Erro ao criar conta'
   }
 }
-
-function goToLogin() {
-  router.push('/login')
-}
 </script>
 
-<template>
-  <v-container fluid class="h-100 d-flex align-center justify-center px-3 px-sm-4 pt-16">
-    <v-row class="w-100 ma-0">
-      <v-col cols="12" sm="10" md="8" lg="6" class="mx-auto">
-        <v-card class="pa-6 pa-sm-8" elevation="10">
-          <h1 class="mb-2 text-center text-h4">Criar Conta</h1>
-          <p class="subtitle mb-6 text-center text-grey">Cadastre-se no SmartAuto</p>
 
-          <v-card-text>
+<template>
+  <v-container fluid class="register-container">
+    <v-row class="justify-center">
+      <v-col cols="11" xs="10" sm="10" md="8" lg="5" class="mx-auto">
+        <v-card class="pa-4 pa-md-8" elevation="10">
+          <h1 class="mb-2 text-center">Cadastro</h1>
+          <p class="subtitle mb-8 text-center">Crie sua conta SmartAuto</p>
+
+          <v-card-text class="pa-0">
             <v-form @submit.prevent="handleRegister">
               <v-text-field
                 v-model="nome"
                 label="Nome completo *"
                 placeholder="João Silva"
                 outlined
-                class="mb-3"
+                class="mb-2"
+                density="compact"
                 required
               ></v-text-field>
 
@@ -93,7 +91,8 @@ function goToLogin() {
                 type="email"
                 placeholder="seu@email.com"
                 outlined
-                class="mb-3"
+                class="mb-2"
+                density="compact"
                 required
               ></v-text-field>
 
@@ -102,7 +101,8 @@ function goToLogin() {
                 label="CPF *"
                 placeholder="000.000.000-00"
                 outlined
-                class="mb-3"
+                class="mb-2"
+                density="compact"
                 required
               ></v-text-field>
 
@@ -111,7 +111,8 @@ function goToLogin() {
                 label="Telefone"
                 placeholder="(00) 00000-0000"
                 outlined
-                class="mb-3"
+                class="mb-2"
+                density="compact"
               ></v-text-field>
 
               <v-text-field
@@ -119,7 +120,8 @@ function goToLogin() {
                 label="Endereço"
                 placeholder="Rua, número, bairro"
                 outlined
-                class="mb-3"
+                class="mb-2"
+                density="compact"
               ></v-text-field>
 
               <v-text-field
@@ -128,7 +130,8 @@ function goToLogin() {
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="Mínimo 6 caracteres"
                 outlined
-                class="mb-3"
+                class="mb-2"
+                density="compact"
                 :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
                 @click:append="showPassword = !showPassword"
                 required
@@ -140,7 +143,8 @@ function goToLogin() {
                 :type="showConfirm ? 'text' : 'password'"
                 placeholder="Digite a senha novamente"
                 outlined
-                class="mb-3"
+                class="mb-2"
+                density="compact"
                 :append-icon="showConfirm ? 'mdi-eye' : 'mdi-eye-off'"
                 @click:append="showConfirm = !showConfirm"
                 required
@@ -151,7 +155,8 @@ function goToLogin() {
                 label="Tipo de conta"
                 :items="papelOptions"
                 outlined
-                class="mb-4"
+                class="mb-3"
+                density="compact"
               ></v-select>
 
               <v-alert v-if="errorMessage" type="error" class="mb-4">
@@ -172,15 +177,19 @@ function goToLogin() {
 
           <v-divider></v-divider>
 
-          <v-card-text class="text-center py-4">
-            <span>Já tem uma conta?</span>
+          <v-card-text class="text-center py-4 d-flex flex-column gap-2">
+            <div>
+              <span>Já tem uma conta?</span>
+              <router-link to="/sobre">Faça login</router-link>
+            </div>
             <v-btn
               text
-              color="primary"
-              @click="goToLogin"
-              class="ml-2"
+              color="secondary"
+              to="/"
+              prepend-icon="mdi-arrow-left"
+              class="mt-6"
             >
-              Faça login
+              Voltar à Home
             </v-btn>
           </v-card-text>
         </v-card>
@@ -188,3 +197,59 @@ function goToLogin() {
     </v-row>
   </v-container>
 </template>
+
+
+<style scoped>
+.register-container {
+  display: flex;
+  justify-content: center;
+  height: 100vh;
+  padding-top: 80px;
+  padding-bottom: 2rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  overflow-y: auto;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.subtitle {
+  color: #757575;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+a {
+  color: #1976d2;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+  border: none;
+}
+
+a:hover,
+a:focus {
+  outline: none;
+  border: none;
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 1.25rem;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+  }
+
+  .register-container {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+}
+</style>

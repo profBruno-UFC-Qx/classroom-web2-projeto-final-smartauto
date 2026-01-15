@@ -34,14 +34,14 @@ function goToRegister() {
 </script>
 
 <template>
-  <v-container fluid class="h-100 d-flex align-center justify-center px-3 px-sm-4 pt-16">
-    <v-row class="w-100 ma-0">
-      <v-col cols="12" sm="10" md="8" lg="5" class="mx-auto">
-        <v-card class="pa-6 pa-sm-8" elevation="10">
-          <h1 class="mb-2 text-center text-h4">Login</h1>
-          <p class="subtitle mb-8 text-center text-grey">Acesse sua conta SmartAuto</p>
+  <v-container fluid class="login-container">
+    <v-row class="justify-center">
+      <v-col cols="12" xs="11" sm="10" md="8" lg="5" class="mx-auto">
+        <v-card class="pa-4 pa-md-8" elevation="10">
+          <h1 class="mb-2 text-center">Login</h1>
+          <p class="subtitle mb-8 text-center">Acesse sua conta SmartAuto</p>
 
-          <v-card-text>
+          <v-card-text class="pa-0">
             <v-form @submit.prevent="handleLogin">
               <v-text-field
                 v-model="email"
@@ -49,7 +49,8 @@ function goToRegister() {
                 type="email"
                 placeholder="seu@email.com"
                 outlined
-                class="mb-4"
+                class="mb-3"
+                density="compact"
                 required
               ></v-text-field>
 
@@ -59,7 +60,8 @@ function goToRegister() {
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="Digite sua senha"
                 outlined
-                class="mb-4"
+                class="mb-3"
+                density="compact"
                 :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
                 @click:append="showPassword = !showPassword"
                 required
@@ -83,15 +85,25 @@ function goToRegister() {
 
           <v-divider></v-divider>
 
-          <v-card-text class="text-center py-4">
-            <span>Não tem uma conta?</span>
+          <v-card-text class="text-center py-4 d-flex flex-column gap-2">
+            <div>
+              <span>Não tem uma conta?</span>
+              <v-btn
+                text
+                color="primary"
+                @click="goToRegister"
+                class="ml-2"
+              >
+                Cadastre-se
+              </v-btn>
+            </div>
             <v-btn
               text
-              color="primary"
-              @click="goToRegister"
-              class="ml-2"
+              color="secondary"
+              to="/"
+              prepend-icon="mdi-arrow-left"
             >
-              Cadastre-se
+              Voltar à Home
             </v-btn>
           </v-card-text>
         </v-card>
@@ -99,3 +111,42 @@ function goToRegister() {
     </v-row>
   </v-container>
 </template>
+<style scoped>
+.login-container {
+  display: flex;
+  justify-content: center;
+  height: 100vh;
+  padding-top: 80px;
+  padding-bottom: 2rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  overflow-y: auto;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.subtitle {
+  color: #757575;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 1.25rem;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+  }
+
+  .login-container {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+</style>
