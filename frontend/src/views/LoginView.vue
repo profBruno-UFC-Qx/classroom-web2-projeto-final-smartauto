@@ -27,17 +27,14 @@ async function handleLogin() {
     errorMessage.value = authStore.error || 'Erro ao fazer login'
   }
 }
-
-function goToRegister() {
-  router.push('/register')
-}
 </script>
+
 
 <template>
   <v-container fluid class="login-container">
     <v-row class="justify-center">
-      <v-col cols="12" xs="11" sm="10" md="8" lg="5" class="mx-auto">
-        <v-card class="pa-4 pa-md-8" elevation="10">
+      <v-col cols="11" xs="11" sm="10" md="7" lg="4" class="mx-auto">
+        <v-card class="form-card pa-4 pa-md-6" elevation="10">
           <h1 class="mb-2 text-center">Login</h1>
           <p class="subtitle mb-8 text-center">Acesse sua conta SmartAuto</p>
 
@@ -88,20 +85,14 @@ function goToRegister() {
           <v-card-text class="text-center py-4 d-flex flex-column gap-2">
             <div>
               <span>Não tem uma conta?</span>
-              <v-btn
-                text
-                color="primary"
-                @click="goToRegister"
-                class="ml-2"
-              >
-                Cadastre-se
-              </v-btn>
+              <router-link to="/register" class="link-register">Cadastre-se</router-link>
             </div>
             <v-btn
               text
               color="secondary"
               to="/"
               prepend-icon="mdi-arrow-left"
+              class="mt-6"
             >
               Voltar à Home
             </v-btn>
@@ -111,6 +102,8 @@ function goToRegister() {
     </v-row>
   </v-container>
 </template>
+
+
 <style scoped>
 .login-container {
   display: flex;
@@ -120,6 +113,13 @@ function goToRegister() {
   padding-bottom: 2rem;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.form-card {
+  max-width: 520px;
+  max-height: 90vh;
   overflow-y: auto;
 }
 
@@ -133,6 +133,20 @@ h1 {
   color: #757575;
   font-size: 0.875rem;
   opacity: 0.9;
+}
+
+a {
+  color: #1976d2;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.link-register {
+  text-decoration: underline;
+}
+
+:deep(.v-btn a) {
+  text-decoration: none !important;
 }
 
 @media (max-width: 600px) {

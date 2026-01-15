@@ -32,14 +32,11 @@ a,
 }
 @media (min-width: 1024px) {
   body {
-    display: flex;
-    place-items: center;
+    display: block;
   }
 
   #app {
     flex: 1;
-
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
+    padding: 0;
   }
 }

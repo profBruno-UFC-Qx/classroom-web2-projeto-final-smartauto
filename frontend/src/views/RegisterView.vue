@@ -29,7 +29,7 @@ const papelOptions = [
 async function handleRegister() {
   errorMessage.value = ''
 
-  if (!nome.value || !email.value || !senha.value || !cpf.value) {
+  if (!nome.value || !email.value || !senha.value || !cpf.value || !papel.value) {
     errorMessage.value = 'Preencha todos os campos obrigatórios'
     return
   }
@@ -51,7 +51,7 @@ async function handleRegister() {
     cpf: cpf.value,
     ...(telefone.value && { telefone: telefone.value }),
     ...(endereco.value && { endereco: endereco.value }),
-    papel: papel.value
+    papel: papel.value as UserRoleType
   }
 
   const user = await authStore.register(userData)
@@ -68,8 +68,8 @@ async function handleRegister() {
 <template>
   <v-container fluid class="register-container">
     <v-row class="justify-center">
-      <v-col cols="11" xs="10" sm="10" md="8" lg="5" class="mx-auto">
-        <v-card class="pa-4 pa-md-8" elevation="10">
+      <v-col cols="11" xs="11" sm="10" md="7" lg="4" class="mx-auto">
+        <v-card class="form-card pa-4 pa-md-8" elevation="10">
           <h1 class="mb-2 text-center">Cadastro</h1>
           <p class="subtitle mb-8 text-center">Crie sua conta SmartAuto</p>
 
@@ -178,10 +178,10 @@ async function handleRegister() {
 
           <v-divider></v-divider>
 
-          <v-card-text class="text-center py-4 d-flex flex-column gap-2">
+          <v-card-text class="text-center py-8 d-flex flex-column gap-2">
             <div>
               <span>Já tem uma conta?</span>
-              <router-link to="/sobre">Faça login</router-link>
+              <router-link to="/login" class="link-login">Faça login</router-link>
             </div>
             <v-btn
               text
@@ -205,23 +205,40 @@ async function handleRegister() {
   display: flex;
   justify-content: center;
   height: 100vh;
-  padding-top: 80px;
-  padding-bottom: 2rem;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding-top: 48px;
+  padding-bottom: 96px;
+  padding-left: 0;
+  padding-right: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 h1 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #1a1a1a;
 }
 
 .subtitle {
   color: #757575;
-  font-size: 0.875rem;
+  font-size: 0.78rem;
   opacity: 0.9;
+}
+
+.form-card {
+  max-height: 85vh;
+  overflow-y: auto;
+  font-size: 0.9rem;
+}
+
+.form-card .v-field__input,
+.form-card .v-label,
+.form-card .v-btn .v-btn__content {
+  font-size: 0.9rem;
+}
+
+.link-login {
+  text-decoration: underline;
 }
 
 a {
@@ -238,6 +255,10 @@ a:focus {
   border: none;
 }
 
+:deep(.v-btn a) {
+  text-decoration: none !important;
+}
+
 @media (max-width: 600px) {
   h1 {
     font-size: 1.25rem;
@@ -250,6 +271,7 @@ a:focus {
   .register-container {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
+    padding-bottom: 80px;
   }
 
 }
