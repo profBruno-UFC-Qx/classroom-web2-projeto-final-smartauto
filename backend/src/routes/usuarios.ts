@@ -43,7 +43,7 @@ router.post("/", async (req: Request, res: Response) => {
 });
 
 // POST /usuarios/login
-router.post("/login", async (req: Request, res: Response) => {
+router.post("/usuario/login", async (req: Request, res: Response) => {
   try {
     const { email, senha } = req.body;
 

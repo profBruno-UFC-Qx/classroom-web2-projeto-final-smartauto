@@ -31,7 +31,7 @@ const filteredUsers = computed(() => {
   if (roleFilter.value === 'all') {
     return userStore.users
   }
-  return userStore.users.filter(u => u.role === roleFilter.value)
+  return userStore.users.filter((u: User) => u.role === roleFilter.value)
 })
 
 onMounted(async () => {
@@ -91,14 +91,16 @@ async function handleSubmit() {
   const data = { ...formData.value }
   
   // Se estamos editando e não alterou a senha, remove o campo
+  let submitData = data
   if (editingUser.value && !formData.value.senha) {
-    delete data.senha
+    const { senha: _, ...dataWithoutSenha } = data
+    submitData = dataWithoutSenha
   }
 
   if (editingUser.value && editingUser.value.id) {
-    await userStore.updateUser(editingUser.value.id, data)
+    await userStore.updateUser(editingUser.value.id, submitData)
   } else {
-    await userStore.createUser(data)
+    await userStore.createUser(submitData)
   }
 
   if (!userStore.error) {
