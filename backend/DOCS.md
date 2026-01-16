@@ -14,6 +14,8 @@ Este projeto foi migrado do [projeto original](https://github.com/gabrielraulino
 - **TypeORM**: ORM para TypeScript
 - **SQLite**: Banco de dados (sqlite3)
 - **reflect-metadata**: Necessário para decorators do TypeORM
+- **JWT (jsonwebtoken)**: Autenticação baseada em tokens
+- **bcrypt**: Hash de senhas
 
 ## Estrutura do Projeto
 
@@ -34,7 +36,10 @@ SmartAutoApp-Node/
 │   │   ├── Categoria.ts
 │   │   ├── Locacao.ts
 │   │   └── CategoriaVeiculo.ts
+│   ├── middleware/
+│   │   └── auth.ts              # Middleware de autenticação JWT
 │   └── routes/
+│       ├── auth.ts              # Rotas de autenticação (login, register)
 │       ├── categorias.ts
 │       ├── usuarios.ts
 │       ├── veiculos.ts
@@ -54,7 +59,11 @@ npm install
 
 ```
 SQLITE_URL=sqlite:./smartauto.db
+JWT_SECRET=smartauto-secret-key-change-in-production
+ADMIN_API_KEY=your-secure-admin-api-key-here
 ```
+
+**Importante**: Em produção, altere o `JWT_SECRET` e `ADMIN_API_KEY` para chaves seguras e aleatórias.
 
 ## Execução
 
@@ -84,47 +93,79 @@ O servidor estará disponível em `http://localhost:3000` por padrão.
 
 ## Endpoints
 
+### Autenticação
+
+- `POST /auth/register` - Registra um novo usuário (público)
+  - Body: `{ "nome", "usuario", "senha", "telefone", "email", "uf", "cidade", "logradouro", "numero", "api_key" (opcional) }`
+  - Retorna: `{ "token": "...", "user": {...} }`
+  - **Comportamento**:
+    - Sem `api_key`: cria usuário com role `CLIENTE` (padrão)
+    - Com `api_key` válida: cria usuário com role `ADMIN`
+    - Com `api_key` inválida: retorna erro 403
+  - Validações: usuário e email únicos
+  - A `api_key` válida deve estar configurada no arquivo `.env` como `ADMIN_API_KEY`
+
+- `POST /auth/login` - Realiza login (público)
+  - Body: `{ "usuario", "senha" }`
+  - Retorna: `{ "token": "...", "user": {...} }`
+  - Use o token no header: `Authorization: Bearer <token>`
+
+**Nota**: Para acessar rotas protegidas, inclua o header `Authorization: Bearer <token>` nas requisições.
+
 ### Categorias
 
-- `GET /categorias` - Lista categorias (com paginação: `?offset=0&limit=10`)
-- `GET /categorias/:categoria_id` - Busca categoria por ID
-- `POST /categorias` - Cria categoria (`{ "nome": "...", "descricao": "..." }`)
-- `PUT /categorias/:categoria_id` - Atualiza categoria
-- `DELETE /categorias/:categoria_id` - Remove categoria
+- `GET /categorias` - Lista categorias (público - com paginação: `?offset=0&limit=10`)
+- `GET /categorias/:categoria_id` - Busca categoria por ID (público)
+- `POST /categorias` - Cria categoria (requer autenticação: LOCADOR ou ADMIN) - Body: `{ "nome": "...", "descricao": "..." }`
+- `PUT /categorias/:categoria_id` - Atualiza categoria (requer autenticação: LOCADOR ou ADMIN)
+- `DELETE /categorias/:categoria_id` - Remove categoria (requer autenticação: LOCADOR ou ADMIN)
 
 ### Usuários
 
-- `GET /usuarios` - Lista usuários (com paginação: `?offset=0&limit=10`)
-- `GET /usuarios/:id` - Busca usuário por ID
-- `GET /usuarios/nome/:nome` - Busca usuários por nome
-- `GET /usuarios/role/:role` - Busca usuários por role (cliente, locador, admin)
-- `POST /usuarios` - Cria usuário
-- `PUT /usuarios/:id` - Atualiza usuário
-- `DELETE /usuarios/:id` - Remove usuário
+- `GET /usuarios` - Lista usuários (requer autenticação: LOCADOR ou ADMIN)
+- `GET /usuarios/me` - Retorna dados do usuário logado (requer autenticação)
+- `PUT /usuarios/me` - Atualiza dados do usuário logado (requer autenticação)
+- `GET /usuarios/:id` - Busca usuário por ID (requer autenticação: LOCADOR ou ADMIN)
+- `GET /usuarios/nome/:nome` - Busca usuários por nome (requer autenticação: LOCADOR ou ADMIN)
+- `GET /usuarios/role/:role` - Busca usuários por role (requer autenticação: LOCADOR ou ADMIN)
+- `POST /usuarios` - Cria usuário (requer autenticação: ADMIN)
+- `PUT /usuarios/:id` - Atualiza usuário (requer autenticação: ADMIN)
+- `DELETE /usuarios/:id` - Remove usuário (requer autenticação: ADMIN)
 
 ### Veículos
 
-- `GET /veiculos` - Lista veículos (com paginação, `?disponiveis=true`)
-- `GET /veiculos/veiculo-com-categoria/` - Lista veículos com categorias
-- `GET /veiculos/:veiculo_id` - Busca veículo por ID
-- `GET /veiculos/categoria/:categoria` - Lista veículos por categoria
-- `GET /veiculos/preco/?min_preco=0&max_preco=1000000` - Lista veículos por faixa de preço
-- `GET /veiculos/ano/:ano` - Lista veículos por ano
-- `GET /veiculos/modelo/:modelo` - Lista veículos por modelo
-- `POST /veiculos` - Cria veículo
-- `PUT /veiculos/:veiculo_id` - Atualiza veículo
-- `DELETE /veiculos/:veiculo_id` - Remove veículo
-- `POST /veiculos/categoria/:veiculo_id` - Associa categoria ao veículo
+- `GET /veiculos` - Lista veículos com categorias (público - sempre retorna categorias)
+  - Query params opcionais (podem ser combinados):
+    - `offset`: número (padrão: 0) - Paginação
+    - `limit`: número (padrão: 10, máximo: 100) - Limite de resultados
+    - `disponiveis`: boolean (padrão: true) - Filtrar por disponibilidade
+    - `categoria`: string - Filtrar por nome da categoria
+    - `min_preco`: number - Preço mínimo
+    - `max_preco`: number - Preço máximo
+    - `ano`: number - Filtrar por ano
+    - `modelo`: string - Filtrar por modelo
+    - `marca`: string - Filtrar por marca
+  - Exemplos:
+    - `GET /veiculos?categoria=Locacao&disponiveis=true` - Veículos disponíveis da categoria Locação
+    - `GET /veiculos?ano=2023&marca=Honda` - Veículos Honda de 2023
+    - `GET /veiculos?min_preco=50000&max_preco=150000` - Veículos na faixa de preço
+    - `GET /veiculos?modelo=Civic&disponiveis=true` - Civics disponíveis
+- `GET /veiculos/:veiculo_id` - Busca veículo por ID (público - retorna com categorias)
+- `POST /veiculos` - Cria veículo (requer autenticação: LOCADOR ou ADMIN)
+- `PUT /veiculos/:veiculo_id` - Atualiza veículo (requer autenticação: LOCADOR ou ADMIN)
+- `DELETE /veiculos/:veiculo_id` - Remove veículo (requer autenticação: LOCADOR ou ADMIN)
+- `POST /veiculos/categoria/:veiculo_id` - Associa categoria ao veículo (requer autenticação: LOCADOR ou ADMIN)
 
 ### Locações
 
-- `GET /locacoes` - Lista locações (com paginação)
-- `GET /locacoes/:id` - Busca locação por ID
-- `POST /locacoes` - Cria locação com status PENDENTE (valor_total é calculado automaticamente)
-- `PUT /locacoes/:id` - Atualiza locação
-- `PUT /locacoes/:id/aprovar` - Aprova uma locação pendente (muda status para APROVADA)
-- `PUT /locacoes/:id/recusar` - Recusa uma locação pendente (muda status para RECUSADA)
-- `DELETE /locacoes/:id` - Remove locação
+- `GET /locacoes` - Lista locações (requer autenticação - com paginação)
+- `GET /locacoes/me` - Lista locações do usuário logado (requer autenticação)
+- `GET /locacoes/:id` - Busca locação por ID (requer autenticação)
+- `POST /locacoes` - Cria locação com status PENDENTE (requer autenticação - valor_total é calculado automaticamente)
+- `PUT /locacoes/:id` - Atualiza locação (requer autenticação: LOCADOR ou ADMIN)
+- `PUT /locacoes/:id/aprovar` - Aprova uma locação pendente (requer autenticação: LOCADOR ou ADMIN - muda status para APROVADA)
+- `PUT /locacoes/:id/recusar` - Recusa uma locação pendente (requer autenticação: LOCADOR ou ADMIN - muda status para RECUSADA)
+- `DELETE /locacoes/:id` - Remove locação (requer autenticação: LOCADOR ou ADMIN)
 
 ## Modelos de Dados
 
@@ -183,11 +224,59 @@ O servidor estará disponível em `http://localhost:3000` por padrão.
 - O `valor_total` de uma `Locacao` é calculado a partir da `valor_diaria` do `Veiculo` e da duração (dias)
 - Um `Veiculo` pode pertencer a várias `Categorias` (relacionamento many-to-many)
 
-## Permissões
+## Permissões e Autenticação
 
-- `CLIENTE`: Pode visualizar catálogo de veículos e solicitar locações
-- `LOCADOR`: Pode gerenciar locações (aprovar, recusar, alterar) e visualizar catálogo
-- `ADMIN`: Permissão total - pode inserir, atualizar e deletar veículos, usuários e gerenciar locações
+### Sistema de Autenticação JWT
+
+A API utiliza autenticação baseada em JWT (JSON Web Tokens). Para acessar rotas protegidas:
+
+1. **Registrar ou fazer login** para obter um token JWT
+2. **Incluir o token** no header das requisições: `Authorization: Bearer <token>`
+
+### Permissões por Role
+
+#### CLIENTE
+- **Público**: Visualizar catálogo de veículos e categorias
+- **Autenticado**: 
+  - Ver próprios dados (`GET /usuarios/me`)
+  - Atualizar próprios dados (`PUT /usuarios/me`)
+  - Criar locações (`POST /locacoes`)
+  - Ver próprias locações (`GET /locacoes/me`)
+  - Ver todas as locações (`GET /locacoes`)
+
+#### LOCADOR
+- **Todas as permissões de CLIENTE**
+- **Adicional**:
+  - Gerenciar veículos (criar, atualizar, deletar)
+  - Gerenciar categorias (criar, atualizar, deletar)
+  - Listar todos os usuários
+  - Gerenciar locações (aprovar, recusar, atualizar, deletar)
+
+#### ADMIN
+- **Todas as permissões de LOCADOR**
+- **Adicional**:
+  - Gerenciar usuários (criar, atualizar, deletar qualquer usuário)
+  - Alterar roles de usuários
+
+### Resumo de Acesso
+
+| Endpoint | Público | Autenticado | LOCADOR/ADMIN | ADMIN |
+|----------|---------|-------------|---------------|-------|
+| `GET /veiculos` | ✅ | ✅ | ✅ | ✅ |
+| `GET /categorias` | ✅ | ✅ | ✅ | ✅ |
+| `POST /auth/register` | ✅ | - | - | - |
+| `POST /auth/login` | ✅ | - | - | - |
+| `GET /usuarios/me` | - | ✅ | ✅ | ✅ |
+| `PUT /usuarios/me` | - | ✅ | ✅ | ✅ |
+| `POST /locacoes` | - | ✅ | ✅ | ✅ |
+| `GET /locacoes/me` | - | ✅ | ✅ | ✅ |
+| `POST /veiculos` | - | - | ✅ | ✅ |
+| `POST /categorias` | - | - | ✅ | ✅ |
+| `GET /usuarios` | - | - | ✅ | ✅ |
+| `PUT /locacoes/:id` | - | - | ✅ | ✅ |
+| `POST /usuarios` | - | - | - | ✅ |
+| `PUT /usuarios/:id` | - | - | - | ✅ |
+| `DELETE /usuarios/:id` | - | - | - | ✅ |
 
 ## Notas de Migração
 
