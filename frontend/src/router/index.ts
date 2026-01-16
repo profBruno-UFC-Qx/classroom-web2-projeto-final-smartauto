@@ -20,13 +20,6 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false }
   },
   {
-    path: '/about',
-    component: () => import('@/views/AboutView.vue'),
-    meta: { requiresAuth: false }
-  },
-
-  // Rotas autenticadas
-  {
     path: '/veiculos',
     component: () => import('@/views/VehiclesView.vue'),
     meta: { requiresAuth: true }
@@ -41,8 +34,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/UsersView.vue'),
     meta: { requiresAuth: true, roles: [UserRole.ADMIN] }
   },
-
-  // 404
   {
     path: '/:pathMatch(.*)*',
     component: () => import('@/views/HomeView.vue')
@@ -54,7 +45,6 @@ const router = createRouter({
   routes
 })
 
-// Guard de rotas
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.meta.requiresAuth ?? true
@@ -73,7 +63,6 @@ router.beforeEach((to, from, next) => {
       }
     }
   } else {
-    // Se está logado e tenta acessar login/register, redireciona para home
     if (authStore.isAuthenticated && (to.path === '/login' || to.path === '/register')) {
       next({ path: '/' })
       return

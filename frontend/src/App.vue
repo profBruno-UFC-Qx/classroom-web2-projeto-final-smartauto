@@ -18,7 +18,6 @@ function logout() {
 
 <template>
   <v-app>
-    <!-- App Bar com navegação -->
     <v-app-bar v-if="isAuthenticated" color="primary" dark sticky>
       <v-app-bar-nav-icon @click="drawer = !drawer" class="d-md-none"></v-app-bar-nav-icon>
 
@@ -64,7 +63,6 @@ function logout() {
       </div>
     </v-app-bar>
 
-    <!-- Navigation Drawer Mobile -->
     <v-navigation-drawer v-if="isAuthenticated" v-model="drawer" temporary>
       <v-list>
         <v-list-item :title="userName" :subtitle="authStore.user?.email">
@@ -93,12 +91,10 @@ function logout() {
       </v-list>
     </v-navigation-drawer>
 
-    <!-- Main Content -->
     <v-main class="flex-grow-1">
       <RouterView />
     </v-main>
 
-    <!-- Footer -->
     <v-footer v-if="isAuthenticated" class="text-center py-4 bg-surface">
       <div class="w-100">
         <p class="text-caption text-disabled mb-0">SmartAuto &copy; 2025 - Sistema de Aluguel de Veículos</p>

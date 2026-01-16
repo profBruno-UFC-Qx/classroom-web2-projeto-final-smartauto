@@ -46,6 +46,6 @@ app.use(router)
 app.use(vuetify)
 
 const authStore = useAuthStore()
-authStore.logout() // Inicializa store
+authStore.logout()
 
 app.mount('#app')

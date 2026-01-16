@@ -233,7 +233,7 @@ async function handleRegister() {
   display: flex;
   justify-content: center;
   min-height: 100vh;
-  padding-top: 80px;
+  padding-top: 40px;
   padding-bottom: 2rem;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
