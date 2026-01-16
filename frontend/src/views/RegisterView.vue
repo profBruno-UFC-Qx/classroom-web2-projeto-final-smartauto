@@ -209,7 +209,7 @@ async function handleRegister() {
 
           <v-card-text class="card-footer">
             <div>
-              <span>Já tem uma conta?</span>
+              <span>Já tem uma conta? </span>
               <router-link to="/login" class="link-login">Faça login</router-link>
             </div>
             <v-btn

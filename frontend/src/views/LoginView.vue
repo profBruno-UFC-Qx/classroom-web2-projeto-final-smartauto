@@ -84,7 +84,7 @@ async function handleLogin() {
 
           <v-card-text class="text-center py-4 d-flex flex-column gap-2">
             <div>
-              <span>Não tem uma conta?</span>
+              <span>Não tem uma conta? </span>
               <router-link to="/register" class="link-register">Cadastre-se</router-link>
             </div>
             <v-btn
