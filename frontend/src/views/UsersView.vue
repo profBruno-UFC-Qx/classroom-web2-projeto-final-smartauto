@@ -91,7 +91,7 @@ async function handleSubmit() {
   const data = { ...formData.value }
   
   // Se estamos editando e não alterou a senha, remove o campo
-  let submitData = data
+  let submitData: any = data
   if (editingUser.value && !formData.value.senha) {
     const { senha: _, ...dataWithoutSenha } = data
     submitData = dataWithoutSenha

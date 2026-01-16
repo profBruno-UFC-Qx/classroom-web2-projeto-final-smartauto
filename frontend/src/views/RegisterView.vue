@@ -74,8 +74,8 @@ async function handleRegister() {
     <v-row class="row-center">
       <v-col cols="11" xs="11" sm="10" md="7" lg="4" class="col-center">
         <v-card class="form-card" elevation="10">
-          <h1 class="title">Cadastro</h1>
-          <p class="subtitle">Crie sua conta SmartAuto</p>
+          <h1 class="title">Criar Conta</h1>
+          <p class="subtitle">Cadastre-se no SmartAuto</p>
 
           <v-card-text class="card-content">
             <v-form @submit.prevent="handleRegister">
@@ -237,6 +237,44 @@ async function handleRegister() {
   padding-bottom: 2rem;
   padding-left: 0.5rem;
   padding-right: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.register-container::before {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  top: -100px;
+  right: -100px;
+  animation: float 6s ease-in-out infinite;
+  z-index: 0;
+}
+
+.register-container::after {
+  content: '';
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  bottom: -50px;
+  left: -50px;
+  animation: float 8s ease-in-out infinite reverse;
+  z-index: 0;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(30px);
+  }
 }
 
 .row-center {
@@ -251,6 +289,8 @@ async function handleRegister() {
 .form-card {
   max-width: 500px;
   padding: 1rem;
+  position: relative;
+  z-index: 1;
 }
 
 @media (min-width: 960px) {
@@ -321,11 +361,13 @@ a {
 
 :deep(input[type="number"]) {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 :deep(input[type="number"]::-webkit-outer-spin-button),
 :deep(input[type="number"]::-webkit-inner-spin-button) {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 </style>
