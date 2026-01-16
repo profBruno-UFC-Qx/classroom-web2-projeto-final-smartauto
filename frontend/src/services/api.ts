@@ -1,8 +1,13 @@
 import type { ApiResponse, PaginatedResponse } from '@/types'
 
 export class ApiService {
-  private baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
-  private token: string | null = localStorage.getItem('auth_token')
+  private baseURL: string = 'http://localhost:3000'
+  private token: string | null = null
+
+  constructor() {
+    // Try to load token from localStorage on initialization
+    this.token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  }
 
   setToken(token: string) {
     this.token = token
@@ -14,7 +19,7 @@ export class ApiService {
     localStorage.removeItem('auth_token')
   }
 
-  private getHeaders() {
+  private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     }
@@ -24,18 +29,44 @@ export class ApiService {
     return headers
   }
 
-  private async request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+  private async request<T>(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    endpoint: string,
+    body?: unknown
+  ): Promise<ApiResponse<T>> {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method,
         headers: this.getHeaders(),
         body: body ? JSON.stringify(body) : undefined
       })
-      return await response.json()
-    } catch {
+
+      // Parse response once
+      const json = await response.json().catch(() => undefined)
+
+      // Normalize response shape to ApiResponse
+      if (json && typeof json === 'object' && ('success' in json || 'detail' in json || 'error' in json)) {
+        // Already in ApiResponse format
+        return {
+          success: response.ok && (json as any)?.success !== false,
+          data: (json as any)?.data || json,
+          message: (json as any)?.message,
+          detail: (json as any)?.detail,
+          error: (json as any)?.error
+        }
+      }
+
+      // Wrap plain response data
+      return {
+        success: response.ok,
+        data: json as T,
+        message: !response.ok ? 'Erro na requisição' : undefined
+      }
+    } catch (err) {
       return {
         success: false,
-        message: 'Falha de conexão com o servidor. Verifique se o backend está em execução e acessível.'
+        message: 'Falha de conexão com o servidor. Verifique se o backend está em execução e acessível.',
+        error: err instanceof Error ? err.message : 'Erro desconhecido'
       }
     }
   }
@@ -56,8 +87,8 @@ export class ApiService {
     return this.request<T>('DELETE', endpoint)
   }
 
-  async getList<T>(endpoint: string, page = 1, limit = 10): Promise<ApiResponse<PaginatedResponse<T>>> {
-    return this.get<PaginatedResponse<T>>(`${endpoint}?page=${page}&limit=${limit}`)
+  async getList<T>(endpoint: string, offset = 0, limit = 10): Promise<ApiResponse<T[]>> {
+    return this.get<T[]>(`${endpoint}?offset=${offset}&limit=${limit}`)
   }
 }
 

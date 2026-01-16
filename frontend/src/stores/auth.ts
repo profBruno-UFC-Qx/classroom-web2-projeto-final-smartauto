@@ -13,14 +13,14 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref<string | null>(null)
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
-  const isAdmin = computed(() => user.value?.papel === 'admin')
-  const isFuncionario = computed(() => user.value?.papel === 'funcionario')
-  const isCliente = computed(() => user.value?.papel === 'cliente')
+  const isAdmin = computed(() => user.value?.role === 'admin')
+  const isLocador = computed(() => user.value?.role === 'locador')
+  const isCliente = computed(() => user.value?.role === 'cliente')
 
   function hasPermission(roles: UserRole | UserRole[]) {
     if (!user.value) return false
     const roleArray = Array.isArray(roles) ? roles : [roles]
-    return roleArray.includes(user.value.papel)
+    return roleArray.includes(user.value.role)
   }
 
   async function login(email: string, senha: string) {
@@ -74,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     isAuthenticated,
     isAdmin,
-    isFuncionario,
+    isLocador,
     isCliente,
     hasPermission,
     login,

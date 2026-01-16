@@ -42,6 +42,34 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
+// POST /usuarios/login
+router.post("/login", async (req: Request, res: Response) => {
+  try {
+    const { email, senha } = req.body;
+
+    if (!email || !senha) {
+      return res.status(400).json({ detail: "Email e senha são obrigatórios" });
+    }
+
+    const repository = getConnection().getRepository(Usuario);
+    const usuario = await repository
+      .createQueryBuilder("usuario")
+      .where("usuario.email = :email OR usuario.usuario = :email", { email })
+      .getOne();
+
+    if (!usuario || usuario.senha !== senha) {
+      return res.status(401).json({ detail: "Credenciais inválidas" });
+    }
+
+    const { senha: _, ...usuarioSeguro } = usuario;
+    const token = `token-${usuario.id}-${Date.now()}`;
+
+    res.json({ token, user: usuarioSeguro });
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao autenticar usuário" });
+  }
+});
+
 // GET /usuarios
 router.get("/", async (req: Request, res: Response) => {
   try {

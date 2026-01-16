@@ -1,33 +1,62 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { apiService } from '@/services/api'
+import { RentalStatus } from '@/types'
 import type { Locacao, CreateRentalData, UpdateRentalData } from '@/types'
 
 export const useRentalStore = defineStore('rentals', () => {
   const rentals = ref<Locacao[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const total = ref(0)
-  const page = ref(1)
-  const limit = ref(10)
+  const currentPage = ref(1)
+  const itemsPerPage = ref(10)
 
-  const totalPages = computed(() => Math.ceil(total.value / limit.value))
-  const activeRentals = computed(() => rentals.value.filter(r => r.status === 'ativa'))
+  const pendingRentals = computed(() => rentals.value.filter(r => r.status === RentalStatus.PENDENTE))
+  const approvedRentals = computed(() => rentals.value.filter(r => r.status === RentalStatus.APROVADA))
+
+  function buildQuery(pageNum: number) {
+    const offset = (pageNum - 1) * itemsPerPage.value
+    const params = new URLSearchParams()
+    params.set('offset', String(offset))
+    params.set('limit', String(itemsPerPage.value))
+    return params.toString()
+  }
 
   async function fetchRentals(pageNum = 1) {
     loading.value = true
     error.value = null
     try {
-      const response = await apiService.getList<Locacao>('/locacoes', pageNum, limit.value)
+      const query = buildQuery(pageNum)
+      const response = await apiService.get<Locacao[]>(`/locacoes?${query}`)
+
       if (response.success && response.data) {
-        rentals.value = response.data.data
-        total.value = response.data.total
-        page.value = pageNum
+        rentals.value = response.data
+        currentPage.value = pageNum
       } else {
-        error.value = response.message || 'Erro ao carregar locações'
+        error.value = response.message || 'Erro ao buscar locações'
       }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erro ao carregar locações'
+      error.value = err instanceof Error ? err.message : 'Erro ao buscar locações'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchRentalById(id: number) {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await apiService.get<Locacao>(`/locacoes/${id}`)
+
+      if (response.success && response.data) {
+        return response.data
+      } else {
+        error.value = response.message || 'Erro ao buscar locação'
+        return null
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erro ao buscar locação'
+      return null
     } finally {
       loading.value = false
     }
@@ -38,12 +67,14 @@ export const useRentalStore = defineStore('rentals', () => {
     error.value = null
     try {
       const response = await apiService.post<Locacao>('/locacoes', rentalData)
+
       if (response.success && response.data) {
         rentals.value.unshift(response.data)
         return response.data
+      } else {
+        error.value = response.message || response.detail || 'Erro ao criar locação'
+        return null
       }
-      error.value = response.message || 'Erro ao criar locação'
-      return null
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao criar locação'
       return null
@@ -57,13 +88,17 @@ export const useRentalStore = defineStore('rentals', () => {
     error.value = null
     try {
       const response = await apiService.put<Locacao>(`/locacoes/${id}`, rentalData)
+
       if (response.success && response.data) {
         const index = rentals.value.findIndex(r => r.id === id)
-        if (index !== -1) rentals.value[index] = response.data
+        if (index !== -1) {
+          rentals.value[index] = response.data
+        }
         return response.data
+      } else {
+        error.value = response.message || 'Erro ao atualizar locação'
+        return null
       }
-      error.value = response.message || 'Erro ao atualizar locação'
-      return null
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao atualizar locação'
       return null
@@ -76,13 +111,15 @@ export const useRentalStore = defineStore('rentals', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await apiService.delete(`/locacoes/${id}`)
+      const response = await apiService.delete<void>(`/locacoes/${id}`)
+
       if (response.success) {
         rentals.value = rentals.value.filter(r => r.id !== id)
         return true
+      } else {
+        error.value = response.message || 'Erro ao deletar locação'
+        return false
       }
-      error.value = response.message || 'Erro ao deletar locação'
-      return false
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro ao deletar locação'
       return false
@@ -90,6 +127,32 @@ export const useRentalStore = defineStore('rentals', () => {
       loading.value = false
     }
   }
+
+  async function approveRental(id: number) {
+    return updateRental(id, { status: RentalStatus.APROVADA })
+  }
+
+  async function rejectRental(id: number) {
+    return updateRental(id, { status: RentalStatus.RECUSADA })
+  }
+
+  return {
+    rentals,
+    loading,
+    error,
+    currentPage,
+    itemsPerPage,
+    pendingRentals,
+    approvedRentals,
+    fetchRentals,
+    fetchRentalById,
+    createRental,
+    updateRental,
+    deleteRental,
+    approveRental,
+    rejectRental
+  }
+})
 
   return {
     rentals,

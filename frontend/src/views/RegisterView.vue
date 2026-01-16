@@ -10,26 +10,28 @@ const router = useRouter()
 
 const nome = ref('')
 const email = ref('')
+const usuario = ref('')
 const senha = ref('')
 const confirmarSenha = ref('')
-const cpf = ref('')
 const telefone = ref('')
-const endereco = ref('')
-const papel = ref<UserRoleType | ''>('')
+const uf = ref('')
+const cidade = ref('')
+const logradouro = ref('')
+const numero = ref(0)
+const role = ref<UserRoleType>(UserRole.CLIENTE)
 const errorMessage = ref('')
 const showPassword = ref(false)
 const showConfirm = ref(false)
 
-const papelOptions = [
+const roleOptions = [
   { title: 'Cliente', value: UserRole.CLIENTE },
-  { title: 'Funcionário', value: UserRole.FUNCIONARIO },
-  { title: 'Administrador', value: UserRole.ADMIN }
+  { title: 'Locador', value: UserRole.LOCADOR }
 ]
 
 async function handleRegister() {
   errorMessage.value = ''
 
-  if (!nome.value || !email.value || !senha.value || !cpf.value || !papel.value) {
+  if (!nome.value || !usuario.value || !email.value || !senha.value || !telefone.value || !uf.value || !cidade.value || !logradouro.value || numero.value === 0) {
     errorMessage.value = 'Preencha todos os campos obrigatórios'
     return
   }
@@ -46,139 +48,191 @@ async function handleRegister() {
 
   const userData = {
     nome: nome.value,
+    usuario: usuario.value,
     email: email.value,
     senha: senha.value,
-    cpf: cpf.value,
-    ...(telefone.value && { telefone: telefone.value }),
-    ...(endereco.value && { endereco: endereco.value }),
-    papel: papel.value as UserRoleType
+    telefone: telefone.value,
+    uf: uf.value,
+    cidade: cidade.value,
+    logradouro: logradouro.value,
+    numero: numero.value,
+    role: role.value as UserRoleType
   }
 
-  const user = await authStore.register(userData)
-  
-  if (user) {
-    router.push('/')
+  const success = await authStore.register(userData)
+
+  if (success) {
+    router.push('/login')
   } else {
     errorMessage.value = authStore.error || 'Erro ao criar conta'
   }
 }
 </script>
 
-
 <template>
   <v-container fluid class="register-container">
     <v-row class="justify-center">
-      <v-col cols="11" xs="11" sm="10" md="7" lg="4" class="mx-auto">
-        <v-card class="form-card pa-4 pa-md-8" elevation="10">
+      <v-col cols="11" xs="11" sm="10" md="8" lg="6" class="mx-auto">
+        <v-card class="form-card pa-4 pa-md-6" elevation="10">
           <h1 class="mb-2 text-center">Cadastro</h1>
-          <p class="subtitle mb-8 text-center">Crie sua conta SmartAuto</p>
+          <p class="subtitle mb-6 text-center">Crie sua conta SmartAuto</p>
 
           <v-card-text class="pa-0">
             <v-form @submit.prevent="handleRegister">
-              <v-text-field
-                v-model="nome"
-                label="Nome completo"
-                placeholder="João Silva"
-                outlined
-                class="mb-2"
-                density="compact"
-                required
-              ></v-text-field>
+            <!-- Dados Pessoais -->
+            <h3 class="text-subtitle1 mb-4">Dados Pessoais</h3>
 
-              <v-text-field
-                v-model="email"
-                label="E-mail"
-                type="email"
-                placeholder="seu@email.com"
-                outlined
-                class="mb-2"
-                density="compact"
-                required
-              ></v-text-field>
+            <v-text-field
+              v-model="nome"
+              label="Nome Completo"
+              prepend-inner-icon="mdi-account"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+              required
+            ></v-text-field>
 
-              <v-text-field
-                v-model="cpf"
-                label="CPF"
-                placeholder="000.000.000-00"
-                outlined
-                class="mb-2"
-                density="compact"
-                required
-              ></v-text-field>
+            <v-text-field
+              v-model="usuario"
+              label="Usuário"
+              prepend-inner-icon="mdi-account-circle"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+              required
+            ></v-text-field>
 
-              <v-text-field
-                v-model="telefone"
-                label="Telefone"
-                placeholder="(00) 00000-0000"
-                outlined
-                class="mb-2"
-                density="compact"
-              ></v-text-field>
+            <v-text-field
+              v-model="email"
+              label="E-mail"
+              type="email"
+              prepend-inner-icon="mdi-email"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+              required
+            ></v-text-field>
 
-              <v-text-field
-                v-model="endereco"
-                label="Endereço"
-                placeholder="Rua, número, bairro"
-                outlined
-                class="mb-2"
-                density="compact"
-              ></v-text-field>
+            <v-text-field
+              v-model="telefone"
+              label="Telefone"
+              prepend-inner-icon="mdi-phone"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+              required
+            ></v-text-field>
 
-              <v-text-field
-                v-model="senha"
-                label="Senha"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="Mínimo 6 caracteres"
-                outlined
-                class="mb-2"
-                density="compact"
-                append-icon="mdi-eye"
-                @click:append="showPassword = !showPassword"
-                required
-              ></v-text-field>
+            <!-- Segurança -->
+            <h3 class="text-subtitle1 mb-4 mt-6">Segurança</h3>
 
-              <v-text-field
-                v-model="confirmarSenha"
-                label="Confirmar senha"
-                :type="showConfirm ? 'text' : 'password'"
-                placeholder="Digite a senha novamente"
-                outlined
-                class="mb-2"
-                density="compact"
-                append-icon="mdi-eye"
-                @click:append="showConfirm = !showConfirm"
-                required
-              ></v-text-field>
+            <v-text-field
+              v-model="senha"
+              :type="showPassword ? 'text' : 'password'"
+              label="Senha"
+              prepend-inner-icon="mdi-lock"
+              :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+              @click:append-inner="showPassword = !showPassword"
+              required
+            ></v-text-field>
 
-              <v-select
-                v-model="papel"
-                label="Tipo de conta"
-                :items="papelOptions"
-                outlined
-                class="mb-3"
-                density="compact"
-                clearable
-              ></v-select>
+            <v-text-field
+              v-model="confirmarSenha"
+              :type="showConfirm ? 'text' : 'password'"
+              label="Confirmar Senha"
+              prepend-inner-icon="mdi-lock-check"
+              :append-inner-icon="showConfirm ? 'mdi-eye-off' : 'mdi-eye'"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+              @click:append-inner="showConfirm = !showConfirm"
+              required
+            ></v-text-field>
 
-              <v-alert v-if="errorMessage" type="error" class="mb-4">
-                {{ errorMessage }}
-              </v-alert>
+            <!-- Endereço -->
+            <h3 class="text-subtitle1 mb-4 mt-6">Endereço</h3>
 
-              <v-btn
-                type="submit"
-                color="primary"
-                class="w-100 mb-4"
-                size="large"
-                :loading="authStore.loading"
-              >
-                {{ authStore.loading ? 'Criando conta...' : 'Criar Conta' }}
-              </v-btn>
+            <v-row>
+              <v-col cols="12" sm="6" md="4">
+                <v-text-field
+                  v-model="uf"
+                  label="UF"
+                  maxlength="2"
+                  variant="outlined"
+                  density="compact"
+                  class="mb-3"
+                  required
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6" md="8">
+                <v-text-field
+                  v-model="cidade"
+                  label="Cidade"
+                  variant="outlined"
+                  density="compact"
+                  class="mb-3"
+                  required
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-text-field
+              v-model="logradouro"
+              label="Logradouro"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+              required
+            ></v-text-field>
+
+            <v-text-field
+              v-model.number="numero"
+              label="Número"
+              type="number"
+              variant="outlined"
+              density="compact"
+              class="mb-3"
+              required
+            ></v-text-field>
+
+            <!-- Papel do Usuário -->
+            <h3 class="text-subtitle1 mb-4 mt-6">Tipo de Conta</h3>
+
+            <v-select
+              v-model="role"
+              :items="roleOptions"
+              label="Tipo de Usuário"
+              prepend-inner-icon="mdi-shield-account"
+              variant="outlined"
+              density="compact"
+              class="mb-6"
+              required
+            ></v-select>
+
+            <!-- Mensagens de Erro -->
+            <v-alert v-if="errorMessage" type="error" class="mb-4">
+              {{ errorMessage }}
+            </v-alert>
+
+            <!-- Botões -->
+            <v-btn
+              type="submit"
+              color="primary"
+              class="w-100 mb-4"
+              size="large"
+              :loading="authStore.loading"
+            >
+              {{ authStore.loading ? 'Criando conta...' : 'Criar Conta' }}
+            </v-btn>
             </v-form>
           </v-card-text>
 
           <v-divider></v-divider>
 
-          <v-card-text class="text-center py-8 d-flex flex-column gap-2">
+          <v-card-text class="text-center py-4 d-flex flex-column gap-2">
             <div>
               <span>Já tem uma conta?</span>
               <router-link to="/login" class="link-login">Faça login</router-link>
@@ -199,60 +253,51 @@ async function handleRegister() {
   </v-container>
 </template>
 
-
 <style scoped>
 .register-container {
   display: flex;
   justify-content: center;
-  height: 100vh;
-  padding-top: 48px;
-  padding-bottom: 96px;
-  padding-left: 0;
-  padding-right: 0;
+  background: #ffffff;
+  min-height: 100vh;
+  padding-top: 80px;
+  padding-bottom: 2rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
+.form-card {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
 h1 {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: #1a1a1a;
 }
 
 .subtitle {
   color: #757575;
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   opacity: 0.9;
 }
 
-.form-card {
-  max-height: 85vh;
-  overflow-y: auto;
-  font-size: 0.9rem;
-}
-
-.form-card .v-field__input,
-.form-card .v-label,
-.form-card .v-btn .v-btn__content {
-  font-size: 0.9rem;
-}
-
-.link-login {
-  text-decoration: underline;
+h3 {
+  color: var(--v-theme-primary);
+  font-weight: 500;
 }
 
 a {
   color: #1976d2;
   text-decoration: none;
   cursor: pointer;
-  outline: none;
-  border: none;
 }
 
-a:hover,
-a:focus {
-  outline: none;
-  border: none;
+.link-login {
+  text-decoration: underline;
 }
 
 :deep(.v-btn a) {
@@ -271,8 +316,6 @@ a:focus {
   .register-container {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
-    padding-bottom: 80px;
   }
-
 }
 </style>
