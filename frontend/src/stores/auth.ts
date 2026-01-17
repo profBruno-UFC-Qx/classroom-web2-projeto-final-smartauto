@@ -23,11 +23,11 @@ export const useAuthStore = defineStore('auth', () => {
     return roleArray.includes(user.value.role)
   }
 
-  async function login(email: string, senha: string) {
+  async function login(usuario: string, senha: string) {
     loading.value = true
     error.value = null
     try {
-      const response = await apiService.post<AuthResponse>('/usuarios/login', { email, senha })
+      const response = await apiService.post<AuthResponse>('/auth/login', { usuario, senha })
       if (response.success && response.data) {
         token.value = response.data.token
         user.value = response.data.user
@@ -48,7 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await apiService.post('/usuarios', userData)
+      const response = await apiService.post('/auth/register', userData)
       if (!response.success) {
         error.value = response.message || 'Erro ao registrar'
       }

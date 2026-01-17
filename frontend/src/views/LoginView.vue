@@ -6,21 +6,21 @@ import { useAuthStore } from '@/stores/auth'
 const authStore = useAuthStore()
 const router = useRouter()
 
-const email = ref('')
+const usuario = ref('')
 const senha = ref('')
 const errorMessage = ref('')
 const showPassword = ref(false)
 
 async function handleLogin() {
   errorMessage.value = ''
-  
-  if (!email.value || !senha.value) {
+
+  if (!usuario.value || !senha.value) {
     errorMessage.value = 'Preencha todos os campos'
     return
   }
 
-  const success = await authStore.login(email.value, senha.value)
-  
+  const success = await authStore.login(usuario.value, senha.value)
+
   if (success) {
     router.push('/')
   } else {
@@ -41,10 +41,9 @@ async function handleLogin() {
           <v-card-text class="pa-0">
             <v-form @submit.prevent="handleLogin">
               <v-text-field
-                v-model="email"
-                label="E-mail"
-                type="email"
-                placeholder="seu@email.com"
+                v-model="usuario"
+                type="text"
+                placeholder="Digite seu usuário"
                 outlined
                 class="mb-3"
                 density="compact"
