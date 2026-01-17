@@ -1,11 +1,42 @@
 import { Router, Request, Response } from "express";
+import bcrypt from "bcrypt";
 import { getConnection } from "../database/database";
 import { Usuario, Role } from "../models/Usuario";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { z } from "zod";
+import { validate } from "../middleware/validate";
 
 const router = Router();
 
-// POST /usuarios
-router.post("/", async (req: Request, res: Response) => {
+const UsuarioSchema = z.object({
+  nome: z.string().min(3),
+  usuario: z.string().min(3),
+  senha: z.string().min(8),
+  telefone: z.string().min(11).optional(),
+  email: z.email(),
+  uf: z.string().min(2).optional(),
+  cidade: z.string().min(3).optional(),
+  logradouro: z.string().min(3).optional(),
+  numero: z.number().optional(),
+  role: z.enum(Role),
+});
+
+const AutoUpdateUsuarioSchema = z.object({
+  nome: z.string().min(3).optional(),
+  usuario: z.string().min(3).optional(),
+  telefone: z.string().min(11).optional(),
+  email: z.email().optional(),
+  uf: z.string().min(2).optional(),
+  cidade: z.string().min(3).optional(),
+  logradouro: z.string().min(3).optional(),
+  numero: z.number().optional(),
+});
+
+const senhaSchema = z.object({
+  senha: z.string().min(8),
+});
+// POST /usuarios - Requer autenticação e role ADMIN
+router.post("/", requireAuth, validate({ body: UsuarioSchema }), requireRole([Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { 
       nome, 
@@ -22,10 +53,13 @@ router.post("/", async (req: Request, res: Response) => {
     
     const repository = getConnection().getRepository(Usuario);
     
+    // Hash da senha antes de salvar
+    const hashedPassword = await bcrypt.hash(senha, 10);
+    
     const novoUsuario = repository.create({
       nome,
       usuario,
-      senha,
+      senha: hashedPassword,
       telefone,
       email,
       uf,
@@ -42,36 +76,8 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// POST /usuarios/login
-router.post("/usuario/login", async (req: Request, res: Response) => {
-  try {
-    const { email, senha } = req.body;
-
-    if (!email || !senha) {
-      return res.status(400).json({ detail: "Email e senha são obrigatórios" });
-    }
-
-    const repository = getConnection().getRepository(Usuario);
-    const usuario = await repository
-      .createQueryBuilder("usuario")
-      .where("usuario.email = :email OR usuario.usuario = :email", { email })
-      .getOne();
-
-    if (!usuario || usuario.senha !== senha) {
-      return res.status(401).json({ detail: "Credenciais inválidas" });
-    }
-
-    const { senha: _, ...usuarioSeguro } = usuario;
-    const token = `token-${usuario.id}-${Date.now()}`;
-
-    res.json({ token, user: usuarioSeguro });
-  } catch (error) {
-    res.status(500).json({ error: "Erro ao autenticar usuário" });
-  }
-});
-
-// GET /usuarios
-router.get("/", async (req: Request, res: Response) => {
+// GET /usuarios - Requer autenticação e role LOCADOR ou ADMIN
+router.get("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const offset = parseInt(req.query.offset as string) || 0;
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
@@ -88,8 +94,71 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
+// GET /usuarios/me - Retorna dados do usuário logado (sem senha)
+router.get("/me", requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Usuário não autenticado" });
+    }
+    
+    // Retornar dados do usuário sem senha
+    const { senha: _, ...userWithoutPassword } = req.user;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao buscar usuário" });
+  }
+});
+
+// PUT /usuarios/me - Permite usuário alterar suas próprias informações
+router.put("/me", requireAuth, validate({ body: AutoUpdateUsuarioSchema }), async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Usuário não autenticado" });
+    }
+    
+    const repository = getConnection().getRepository(Usuario);
+    const dbUsuario = await repository.findOne({ where: { id: req.user.id } });
+    
+    if (!dbUsuario) {
+      return res.status(404).json({ detail: "Usuário não encontrado" });
+    }
+
+    Object.assign(dbUsuario, req.body);
+    
+    const updatedUsuario = await repository.save(dbUsuario);
+    const { senha: _, ...userWithoutPassword } = updatedUsuario;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao atualizar usuário" });
+  }
+});
+
+// PUT /usuarios/me/senha - Permite usuário alterar sua senha
+router.put("/me/senha", requireAuth, validate({ body: senhaSchema }), async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Usuário não autenticado" });
+    }
+    
+    const repository = getConnection().getRepository(Usuario);
+    const dbUsuario = await repository.findOne({ where: { id: req.user.id } });
+    
+    if (!dbUsuario) {
+      return res.status(404).json({ detail: "Usuário não encontrado" });
+    }
+
+    const hashedPassword = await bcrypt.hash(req.body.senha, 10);
+    dbUsuario.senha = hashedPassword;
+    
+    await repository.save(dbUsuario);
+    
+    res.json({ message: "Senha atualizada com sucesso" });
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao atualizar senha do usuário" });
+  }
+});
 // GET /usuarios/nome/:nome (busca por nome) - DEVE VIR ANTES DE /:id
-router.get("/nome/:nome", async (req: Request, res: Response) => {
+router.get("/nome/:nome", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const nome = req.params.nome;
     const repository = getConnection().getRepository(Usuario);
@@ -109,7 +178,7 @@ router.get("/nome/:nome", async (req: Request, res: Response) => {
 });
 
 // GET /usuarios/role/:role - DEVE VIR ANTES DE /:id
-router.get("/role/:role", async (req: Request, res: Response) => {
+router.get("/role/:role", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const role = req.params.role as Role;
     const repository = getConnection().getRepository(Usuario);
@@ -128,7 +197,7 @@ router.get("/role/:role", async (req: Request, res: Response) => {
 });
 
 // GET /usuarios/:id - DEVE VIR DEPOIS DAS ROTAS ESPECÍFICAS
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
     const repository = getConnection().getRepository(Usuario);
@@ -144,8 +213,8 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// PUT /usuarios/:id
-router.put("/:id", async (req: Request, res: Response) => {
+// PUT /usuarios/:id - Requer autenticação e role ADMIN
+router.put("/:id", requireAuth, validate({ body: UsuarioSchema }), requireRole([Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const usuarioId = parseInt(req.params.id);
     const repository = getConnection().getRepository(Usuario);
@@ -155,27 +224,17 @@ router.put("/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ detail: "Usuário não encontrado" });
     }
     
-    // Atualizar campos
-    if (req.body.nome !== undefined) dbUsuario.nome = req.body.nome;
-    if (req.body.usuario !== undefined) dbUsuario.usuario = req.body.usuario;
-    if (req.body.senha !== undefined) dbUsuario.senha = req.body.senha;
-    if (req.body.telefone !== undefined) dbUsuario.telefone = req.body.telefone;
-    if (req.body.email !== undefined) dbUsuario.email = req.body.email;
-    if (req.body.uf !== undefined) dbUsuario.uf = req.body.uf;
-    if (req.body.cidade !== undefined) dbUsuario.cidade = req.body.cidade;
-    if (req.body.logradouro !== undefined) dbUsuario.logradouro = req.body.logradouro;
-    if (req.body.numero !== undefined) dbUsuario.numero = req.body.numero;
-    if (req.body.role !== undefined) dbUsuario.role = req.body.role as Role;
-    
-    const updatedUsuario = await repository.save(dbUsuario);
-    res.json(updatedUsuario);
+    Object.assign(dbUsuario, req.body);
+    dbUsuario.senha = await bcrypt.hash(req.body.senha, 10);
+    await repository.save(dbUsuario);
+    res.json({ message: "Usuário atualizado com sucesso" });
   } catch (error) {
     res.status(500).json({ error: "Erro ao atualizar usuário" });
   }
 });
 
-// DELETE /usuarios/:id
-router.delete("/:id", async (req: Request, res: Response) => {
+// DELETE /usuarios/:id - Requer autenticação e role ADMIN
+router.delete("/:id", requireAuth, requireRole([Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const usuarioId = parseInt(req.params.id);
     const repository = getConnection().getRepository(Usuario);
