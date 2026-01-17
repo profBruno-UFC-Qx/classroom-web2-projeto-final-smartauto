@@ -3,13 +3,41 @@ import { getConnection } from "../database/database";
 import { Veiculo } from "../models/Veiculo";
 import { Categoria } from "../models/Categoria";
 import { CategoriaVeiculo } from "../models/CategoriaVeiculo";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { Role } from "../models/Usuario";
+import { z } from "zod";
+import { validate } from "../middleware/validate";
+
+const VeiculoSchema = z.object({
+  marca: z.string().min(3),
+  modelo: z.string().min(3),
+  ano: z.number(),
+  valor_diaria: z.number(),
+  disponivel: z.boolean(),
+  cor: z.string().min(3),
+});
+
+const VeiculoUpdateSchema = z.object({
+  marca: z.string().min(3).optional(),
+  modelo: z.string().min(3).optional(),
+  ano: z.number().optional(),
+  valor_diaria: z.number().optional(),
+  disponivel: z.boolean().optional(),
+  cor: z.string().min(3).optional(),
+});
+
+const CategoriaVeiculoSchema = z.object({
+  nome_categoria: z.string().min(3),
+  descricao: z.string().min(3).optional(),
+});
 
 const router = Router();
-// POST /veiculos
-router.post("/", async (req: Request, res: Response) => {
+// POST /veiculos - Requer autenticação e role LOCADOR ou ADMIN
+router.post("/", requireAuth, validate({ body: VeiculoSchema }), requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
+    const veiculoReq = req.body as z.infer<typeof VeiculoSchema>;
     const repository = getConnection().getRepository(Veiculo);
-    const veiculo = repository.create(req.body);
+    const veiculo: Veiculo = repository.create(veiculoReq);
     const savedVeiculo = await repository.save(veiculo);
     res.status(201).json(savedVeiculo);
   } catch (error) {
@@ -38,6 +66,14 @@ router.get("/", async (req: Request, res: Response) => {
       // : Boolean(req.query.disponiveis);
     const categoria = (req.query.categoria as string) || null;
     
+    // Parâmetros de ordenação
+    const orderBy = (req.query.order_by as string) || "id";
+    const order = (req.query.order as string)?.toLowerCase() === "desc" ? "DESC" : "ASC";
+    
+    // Validar campo de ordenação (whitelist para segurança)
+    const allowedOrderByFields = ["id", "marca", "modelo", "ano", "valor_diaria", "cor"];
+    const validOrderBy = allowedOrderByFields.includes(orderBy) ? orderBy : "id";
+    
     const queryBuilder = repository
       .createQueryBuilder("veiculo")
       .leftJoinAndSelect("veiculo.categorias", "categoria")
@@ -53,7 +89,8 @@ router.get("/", async (req: Request, res: Response) => {
       .andWhere("(:minPreco IS NULL OR veiculo.valor_diaria >= :minPreco)", { minPreco })
       .andWhere("(:maxPreco IS NULL OR veiculo.valor_diaria <= :maxPreco)", { maxPreco })
       .andWhere("veiculo.disponivel = :disponivel", { disponivel: disponivelParam })
-      .andWhere("(:categoria IS NULL OR categoria.nome = :categoria)", { categoria });
+      .andWhere("(:categoria IS NULL OR categoria.nome = :categoria)", { categoria })
+      .orderBy(`veiculo.${validOrderBy}`, order);
     
     const veiculos = await queryBuilder
       .skip(offset)
@@ -63,6 +100,52 @@ router.get("/", async (req: Request, res: Response) => {
     res.json(veiculos);
   } catch (error) {
     res.status(500).json({ error: "Erro ao listar veículos" });
+  }
+});
+
+// DELETE /veiculos/categoria - Remove associação entre categoria e veículo (requer autenticação: LOCADOR ou ADMIN)
+router.delete("/categoria", requireAuth, validate({ query: z.object({ veiculo: z.coerce.number(), categoria: z.coerce.number() }) }), requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
+  try {
+    // Validar se os parâmetros foram fornecidos
+    if (!req.query.veiculo || !req.query.categoria) {
+      return res.status(400).json({ 
+        detail: "Parâmetros 'veiculo' e 'categoria' são obrigatórios" 
+      });
+    }
+
+    const veiculoId = parseInt(req.query.veiculo as string);
+    const categoriaId = parseInt(req.query.categoria as string);
+
+    // Validar se são números válidos
+    if (isNaN(veiculoId) || isNaN(categoriaId)) {
+      return res.status(400).json({ 
+        detail: "Parâmetros 'veiculo' e 'categoria' devem ser números válidos" 
+      });
+    }
+
+    const categoriaVeiculoRepository = getConnection().getRepository(CategoriaVeiculo);
+    const veiculoRepository = getConnection().getRepository(Veiculo);
+    
+    const veiculo = await veiculoRepository.findOne({ where: { id: veiculoId } });
+    if (!veiculo) {
+      return res.status(404).json({ detail: "Veículo não encontrado" });
+    }
+    
+    const categoriaVeiculo = await categoriaVeiculoRepository.findOne({ 
+      where: { veiculo_id: veiculoId, categoria_id: categoriaId } 
+    });
+    
+    if (!categoriaVeiculo) {
+      return res.status(404).json({ 
+        detail: "Categoria associada ao veículo não encontrada" 
+      });
+    }
+    
+    await categoriaVeiculoRepository.remove(categoriaVeiculo);
+    res.json({ ok: true, detail: "Categoria associada ao veículo removida com sucesso" });
+  } catch (error) {
+    console.error("Erro ao remover associação categoria-veículo:", error);
+    res.status(500).json({ error: "Erro ao remover associação entre categoria e veículo" });
   }
 });
 
@@ -83,8 +166,8 @@ router.get("/:veiculo_id", async (req: Request, res: Response) => {
   }
 });
 
-// PUT /veiculos/:veiculo_id
-router.put("/:veiculo_id", async (req: Request, res: Response) => {
+// PUT /veiculos/:veiculo_id - Requer autenticação e role LOCADOR ou ADMIN
+router.put("/:veiculo_id", requireAuth, validate({ body: VeiculoUpdateSchema }), requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const veiculoId = parseInt(req.params.veiculo_id);
     const repository = getConnection().getRepository(Veiculo);
@@ -94,12 +177,9 @@ router.put("/:veiculo_id", async (req: Request, res: Response) => {
       return res.status(404).json({ detail: "Veículo não encontrado" });
     }
     
+    const veiculoReq = req.body as z.infer<typeof VeiculoUpdateSchema>;
     // Atualizar campos
-    Object.keys(req.body).forEach((key) => {
-      if (req.body[key] !== undefined && key !== "id") {
-        (dbVeiculo as any)[key] = req.body[key];
-      }
-    });
+    Object.assign(dbVeiculo, veiculoReq);
     
     const updatedVeiculo = await repository.save(dbVeiculo);
     res.json(updatedVeiculo);
@@ -108,8 +188,8 @@ router.put("/:veiculo_id", async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /veiculos/:veiculo_id
-router.delete("/:veiculo_id", async (req: Request, res: Response) => {
+// DELETE /veiculos/:veiculo_id - Requer autenticação e role LOCADOR ou ADMIN
+router.delete("/:veiculo_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const veiculoId = parseInt(req.params.veiculo_id);
     const repository = getConnection().getRepository(Veiculo);
@@ -126,14 +206,13 @@ router.delete("/:veiculo_id", async (req: Request, res: Response) => {
   }
 });
 
-// POST /veiculos/categoria/:veiculo_id
-router.post("/categoria/:veiculo_id", async (req: Request, res: Response) => {
+// POST /veiculos/categoria/:veiculo_id - Requer autenticação e role LOCADOR ou ADMIN
+router.post("/categoria/:veiculo_id", requireAuth, validate({ body: CategoriaVeiculoSchema }), requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const veiculoId = parseInt(req.params.veiculo_id);
-    const { nome_categoria, descricao } = req.body;
+    const { nome_categoria, descricao } = req.body as z.infer<typeof CategoriaVeiculoSchema>;
     
     const categoriaRepository = getConnection().getRepository(Categoria);
-    const veiculoRepository = getConnection().getRepository(Veiculo);
     const categoriaVeiculoRepository = getConnection().getRepository(CategoriaVeiculo);
     
     // Buscar ou criar categoria
