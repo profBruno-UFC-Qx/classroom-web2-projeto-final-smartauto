@@ -3,11 +3,40 @@ import bcrypt from "bcrypt";
 import { getConnection } from "../database/database";
 import { Usuario, Role } from "../models/Usuario";
 import { requireAuth, requireRole } from "../middleware/auth";
+import { z } from "zod";
+import { validate } from "../middleware/validate";
 
 const router = Router();
 
+const UsuarioSchema = z.object({
+  nome: z.string().min(3),
+  usuario: z.string().min(3),
+  senha: z.string().min(8),
+  telefone: z.string().min(11).optional(),
+  email: z.email(),
+  uf: z.string().min(2).optional(),
+  cidade: z.string().min(3).optional(),
+  logradouro: z.string().min(3).optional(),
+  numero: z.number().optional(),
+  role: z.enum(Role),
+});
+
+const AutoUpdateUsuarioSchema = z.object({
+  nome: z.string().min(3).optional(),
+  usuario: z.string().min(3).optional(),
+  telefone: z.string().min(11).optional(),
+  email: z.email().optional(),
+  uf: z.string().min(2).optional(),
+  cidade: z.string().min(3).optional(),
+  logradouro: z.string().min(3).optional(),
+  numero: z.number().optional(),
+});
+
+const senhaSchema = z.object({
+  senha: z.string().min(8),
+});
 // POST /usuarios - Requer autenticação e role ADMIN
-router.post("/", requireAuth, requireRole([Role.ADMIN]), async (req: Request, res: Response) => {
+router.post("/", requireAuth, validate({ body: UsuarioSchema }), requireRole([Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const { 
       nome, 
@@ -81,7 +110,7 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
 });
 
 // PUT /usuarios/me - Permite usuário alterar suas próprias informações
-router.put("/me", requireAuth, async (req: Request, res: Response) => {
+router.put("/me", requireAuth, validate({ body: AutoUpdateUsuarioSchema }), async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ error: "Usuário não autenticado" });
@@ -93,21 +122,8 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
     if (!dbUsuario) {
       return res.status(404).json({ detail: "Usuário não encontrado" });
     }
-    
-    // Atualizar campos permitidos (não permitir alterar role)
-    if (req.body.nome !== undefined) dbUsuario.nome = req.body.nome;
-    if (req.body.usuario !== undefined) dbUsuario.usuario = req.body.usuario;
-    if (req.body.senha !== undefined) {
-      // Hash da senha antes de atualizar
-      dbUsuario.senha = await bcrypt.hash(req.body.senha, 10);
-    }
-    if (req.body.telefone !== undefined) dbUsuario.telefone = req.body.telefone;
-    if (req.body.email !== undefined) dbUsuario.email = req.body.email;
-    if (req.body.uf !== undefined) dbUsuario.uf = req.body.uf;
-    if (req.body.cidade !== undefined) dbUsuario.cidade = req.body.cidade;
-    if (req.body.logradouro !== undefined) dbUsuario.logradouro = req.body.logradouro;
-    if (req.body.numero !== undefined) dbUsuario.numero = req.body.numero;
-    // Não permitir alterar role através de /me
+
+    Object.assign(dbUsuario, req.body);
     
     const updatedUsuario = await repository.save(dbUsuario);
     const { senha: _, ...userWithoutPassword } = updatedUsuario;
@@ -117,6 +133,30 @@ router.put("/me", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// PUT /usuarios/me/senha - Permite usuário alterar sua senha
+router.put("/me/senha", requireAuth, validate({ body: senhaSchema }), async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Usuário não autenticado" });
+    }
+    
+    const repository = getConnection().getRepository(Usuario);
+    const dbUsuario = await repository.findOne({ where: { id: req.user.id } });
+    
+    if (!dbUsuario) {
+      return res.status(404).json({ detail: "Usuário não encontrado" });
+    }
+
+    const hashedPassword = await bcrypt.hash(req.body.senha, 10);
+    dbUsuario.senha = hashedPassword;
+    
+    await repository.save(dbUsuario);
+    
+    res.json({ message: "Senha atualizada com sucesso" });
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao atualizar senha do usuário" });
+  }
+});
 // GET /usuarios/nome/:nome (busca por nome) - DEVE VIR ANTES DE /:id
 router.get("/nome/:nome", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
@@ -174,7 +214,7 @@ router.get("/:id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (
 });
 
 // PUT /usuarios/:id - Requer autenticação e role ADMIN
-router.put("/:id", requireAuth, requireRole([Role.ADMIN]), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, validate({ body: UsuarioSchema }), requireRole([Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const usuarioId = parseInt(req.params.id);
     const repository = getConnection().getRepository(Usuario);
@@ -184,23 +224,10 @@ router.put("/:id", requireAuth, requireRole([Role.ADMIN]), async (req: Request, 
       return res.status(404).json({ detail: "Usuário não encontrado" });
     }
     
-    // Atualizar campos
-    if (req.body.nome !== undefined) dbUsuario.nome = req.body.nome;
-    if (req.body.usuario !== undefined) dbUsuario.usuario = req.body.usuario;
-    if (req.body.senha !== undefined) {
-      // Hash da senha antes de atualizar
-      dbUsuario.senha = await bcrypt.hash(req.body.senha, 10);
-    }
-    if (req.body.telefone !== undefined) dbUsuario.telefone = req.body.telefone;
-    if (req.body.email !== undefined) dbUsuario.email = req.body.email;
-    if (req.body.uf !== undefined) dbUsuario.uf = req.body.uf;
-    if (req.body.cidade !== undefined) dbUsuario.cidade = req.body.cidade;
-    if (req.body.logradouro !== undefined) dbUsuario.logradouro = req.body.logradouro;
-    if (req.body.numero !== undefined) dbUsuario.numero = req.body.numero;
-    if (req.body.role !== undefined) dbUsuario.role = req.body.role as Role;
-    
-    const updatedUsuario = await repository.save(dbUsuario);
-    res.json(updatedUsuario);
+    Object.assign(dbUsuario, req.body);
+    dbUsuario.senha = await bcrypt.hash(req.body.senha, 10);
+    await repository.save(dbUsuario);
+    res.json({ message: "Usuário atualizado com sucesso" });
   } catch (error) {
     res.status(500).json({ error: "Erro ao atualizar usuário" });
   }

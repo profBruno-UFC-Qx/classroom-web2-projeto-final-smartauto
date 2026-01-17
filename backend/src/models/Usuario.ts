@@ -26,27 +26,26 @@ export class Usuario {
   @Column()
   nome!: string;
 
-  @Column()
-  telefone!: string;
+  @Column({ nullable: true })
+  telefone?: string;
 
   @Column()
   email!: string;
 
-  @Column()
-  uf!: string;
+  @Column({ nullable: true })
+  uf?: string;
 
-  @Column()
-  cidade!: string;
+  @Column({ nullable: true })
+  cidade?: string;
 
-  @Column()
-  logradouro!: string;
+  @Column({ nullable: true })
+  logradouro?: string;
 
-  @Column()
-  numero!: number;
+  @Column({ nullable: true })
+  numero?: string;
 
   @Column({
-    type: "varchar",
-    length: 20,
+    enum: Object.values(Role),
   })
   role!: Role;
 
