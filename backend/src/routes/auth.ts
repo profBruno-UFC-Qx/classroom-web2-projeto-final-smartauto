@@ -4,14 +4,29 @@ import * as dotenv from "dotenv";
 import { getConnection } from "../database/database";
 import { Usuario, Role } from "../models/Usuario";
 import { generateToken } from "../middleware/auth";
+import { validate } from "../middleware/validate";
+import { z } from "zod";
 
 // Carregar variáveis do arquivo .env
 dotenv.config();
 
 const router = Router();
 
+const UserRegisterSchema = z.object({
+  nome: z.string().min(3),
+  usuario: z.string().min(3),
+  senha: z.string().min(8),
+  telefone: z.string().min(11).optional(),
+  email: z.email(),
+  uf: z.string().min(2).optional(),
+  cidade: z.string().min(3).optional(),
+  logradouro: z.string().min(3).optional(),
+  numero: z.number().optional(),
+  api_key: z.string().optional(),
+});
+
 // POST /auth/register
-router.post("/register", async (req: Request, res: Response) => {
+router.post("/register", validate({ body: UserRegisterSchema }), async (req: Request, res: Response) => {
   try {
     const { 
       nome, 
@@ -24,18 +39,10 @@ router.post("/register", async (req: Request, res: Response) => {
       logradouro, 
       numero,
       api_key 
-    } = req.body;
-
-    // Validar campos obrigatórios
-    if (!nome || !usuario || !senha || !telefone || !email || !uf || !cidade || !logradouro || numero === undefined) {
-      return res.status(400).json({ 
-        error: "Todos os campos são obrigatórios" 
-      });
-    }
+    } = req.body as z.infer<typeof UserRegisterSchema>;
 
     const repository = getConnection().getRepository(Usuario);
     
-    // Verificar se o usuário já existe
     const existingUser = await repository.findOne({ where: { usuario } });
     if (existingUser) {
       return res.status(400).json({ 
@@ -43,7 +50,6 @@ router.post("/register", async (req: Request, res: Response) => {
       });
     }
 
-    // Verificar se o email já existe
     const existingEmail = await repository.findOne({ where: { email } });
     if (existingEmail) {
       return res.status(400).json({ 
@@ -51,8 +57,7 @@ router.post("/register", async (req: Request, res: Response) => {
       });
     }
 
-    // Determinar role baseado na api_key
-    let userRole = Role.CLIENTE; // Padrão: CLIENTE
+    let userRole = Role.CLIENTE;
     
     if (api_key) {
       // Se api_key foi fornecida, verificar se corresponde ao valor do .env
@@ -66,49 +71,48 @@ router.post("/register", async (req: Request, res: Response) => {
       }
     }
 
-    // Hash da senha
     const hashedPassword = await bcrypt.hash(senha, 10);
 
-    // Criar novo usuário com role determinada
     const novoUsuario = repository.create({
       nome,
       usuario,
       senha: hashedPassword,
-      telefone,
+      telefone: telefone ?? undefined,
       email,
-      uf,
-      cidade,
-      logradouro,
-      numero,
+      uf: uf ?? undefined,
+      cidade: cidade ?? undefined,
+      logradouro: logradouro ?? undefined,
+      numero: numero ?? undefined,
       role: userRole,
     });
 
     const savedUsuario = await repository.save(novoUsuario);
 
-    // Gerar token JWT
     const token = generateToken(savedUsuario);
 
-    // Retornar token e informações do usuário (sem senha)
     const { senha: _, ...userWithoutPassword } = savedUsuario;
     res.status(201).json({
       token,
       user: userWithoutPassword,
     });
   } catch (error) {
-    res.status(500).json({ error: "Erro ao registrar usuário" });
+    console.error("Erro ao registrar usuário:", error);
+    res.status(500).json({ 
+      error: "Erro ao registrar usuário",
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
 // POST /auth/login
-router.post("/login", async (req: Request, res: Response) => {
-  try {
-    const { usuario, senha } = req.body;
+const UserLoginSchema = z.object({
+  usuario: z.string().min(3),
+  senha: z.string().min(8),
+});
 
-    if (!usuario || !senha) {
-      return res.status(400).json({ 
-        error: "Usuário e senha são obrigatórios" 
-      });
-    }
+router.post("/login", validate({ body: UserLoginSchema }), async (req: Request, res: Response) => {
+  try {
+    const { usuario, senha } = req.body as z.infer<typeof UserLoginSchema>;
 
     const repository = getConnection().getRepository(Usuario);
     const user = await repository.findOne({ where: { usuario } });
@@ -117,17 +121,14 @@ router.post("/login", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Credenciais inválidas" });
     }
 
-    // Verificar senha usando bcrypt
     const isPasswordValid = await bcrypt.compare(senha, user.senha);
 
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Credenciais inválidas" });
     }
 
-    // Gerar token JWT
     const token = generateToken(user);
 
-    // Retornar token e informações do usuário (sem senha)
     const { senha: _, ...userWithoutPassword } = user;
     res.json({
       token,

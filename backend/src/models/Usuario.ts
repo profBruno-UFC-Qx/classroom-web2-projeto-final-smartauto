@@ -26,23 +26,23 @@ export class Usuario {
   @Column()
   nome!: string;
 
-  @Column()
-  telefone!: string;
+  @Column({ nullable: true })
+  telefone?: string;
 
   @Column()
   email!: string;
 
-  @Column()
-  uf!: string;
+  @Column({ nullable: true })
+  uf?: string;
 
-  @Column()
-  cidade!: string;
+  @Column({ nullable: true })
+  cidade?: string;
 
-  @Column()
-  logradouro!: string;
+  @Column({ nullable: true })
+  logradouro?: string;
 
-  @Column()
-  numero!: number;
+  @Column({ nullable: true })
+  numero?: number;
 
   @Column({
     type: "varchar",
