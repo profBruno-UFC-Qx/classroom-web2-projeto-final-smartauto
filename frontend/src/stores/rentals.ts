@@ -153,19 +153,3 @@ export const useRentalStore = defineStore('rentals', () => {
     rejectRental
   }
 })
-
-  return {
-    rentals,
-    loading,
-    error,
-    total,
-    page,
-    limit,
-    totalPages,
-    activeRentals,
-    fetchRentals,
-    createRental,
-    updateRental,
-    deleteRental
-  }
-})

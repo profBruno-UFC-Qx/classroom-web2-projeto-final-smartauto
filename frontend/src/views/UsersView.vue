@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import { UserRole } from '@/types'
-import type { User } from '@/types'
+import type { User, CreateUserData, UpdateUserData } from '@/types'
 
 const userStore = useUserStore()
 const authStore = useAuthStore()
@@ -91,16 +91,17 @@ async function handleSubmit() {
   const data = { ...formData.value }
   
   // Se estamos editando e não alterou a senha, remove o campo
-  let submitData: any = data
+  let submitData: CreateUserData | UpdateUserData = data
   if (editingUser.value && !formData.value.senha) {
-    const { senha: _, ...dataWithoutSenha } = data
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { senha, ...dataWithoutSenha } = data
     submitData = dataWithoutSenha
   }
 
   if (editingUser.value && editingUser.value.id) {
-    await userStore.updateUser(editingUser.value.id, submitData)
+    await userStore.updateUser(editingUser.value.id, submitData as UpdateUserData)
   } else {
-    await userStore.createUser(submitData)
+    await userStore.createUser(submitData as CreateUserData)
   }
 
   if (!userStore.error) {

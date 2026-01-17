@@ -14,8 +14,8 @@ export enum RentalStatus {
 
 // Disponibilidade de Veículo
 export enum VehicleStatus {
-  DISPONIVEL = true,
-  INDISPONIVEL = false
+  DISPONIVEL = 'disponivel',
+  INDISPONIVEL = 'indisponivel'
 }
 
 // User Interface - alinhado com backend
@@ -73,7 +73,7 @@ export interface Locacao {
 }
 
 // API Response
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   message?: string
   data?: T

@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { apiService } from '@/services/api'
-import type { User, UserRole, CreateUserData, UpdateUserData } from '@/types'
+import type { User, CreateUserData, UpdateUserData } from '@/types'
 
 export const useUserStore = defineStore('users', () => {
   const users = ref<User[]>([])
@@ -139,19 +139,6 @@ export const useUserStore = defineStore('users', () => {
     clienteUsers,
     fetchUsers,
     fetchUserById,
-    createUser,
-    updateUser,
-    deleteUser
-  }
-})
-    users,
-    loading,
-    error,
-    total,
-    page,
-    limit,
-    totalPages,
-    fetchUsers,
     createUser,
     updateUser,
     deleteUser
