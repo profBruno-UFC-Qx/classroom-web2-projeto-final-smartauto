@@ -124,10 +124,24 @@ async function handleRegister() {
                 outlined
                 class="field"
                 density="compact"
-                append-icon="mdi-eye"
-                @click:append="showPassword = !showPassword"
                 required
-              ></v-text-field>
+              >
+                <template #append-inner>
+                  <button type="button" class="eye-btn" @click.stop="showPassword = !showPassword">
+                    <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 1l22 22" />
+                      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5 0-9-4-11-8a21.77 21.77 0 0 1 5.06-7.27" />
+                      <path d="M9.88 9.88a3 3 0 0 0 4.24 4.24" />
+                      <path d="M14.12 14.12 20 20" />
+                      <path d="M10.59 5.51A10.94 10.94 0 0 1 12 4c5 0 9 4 11 8a21.77 21.77 0 0 1-2.16 3.19" />
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </button>
+                </template>
+              </v-text-field>
 
               <v-text-field
                 v-model="confirmarSenha"
@@ -136,10 +150,24 @@ async function handleRegister() {
                 outlined
                 class="field"
                 density="compact"
-                append-icon="mdi-eye"
-                @click:append="showConfirm = !showConfirm"
                 required
-              ></v-text-field>
+              >
+                <template #append-inner>
+                  <button type="button" class="eye-btn" @click.stop="showConfirm = !showConfirm">
+                    <svg v-if="showConfirm" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 1l22 22" />
+                      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5 0-9-4-11-8a21.77 21.77 0 0 1 5.06-7.27" />
+                      <path d="M9.88 9.88a3 3 0 0 0 4.24 4.24" />
+                      <path d="M14.12 14.12 20 20" />
+                      <path d="M10.59 5.51A10.94 10.94 0 0 1 12 4c5 0 9 4 11 8a21.77 21.77 0 0 1-2.16 3.19" />
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </button>
+                </template>
+              </v-text-field>
 
               <v-text-field
                 v-model="uf"
@@ -357,6 +385,20 @@ a {
 
 :deep(.v-btn a) {
   text-decoration: none !important;
+}
+
+.eye-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  color: #5f6368;
+}
+
+.eye-btn:hover {
+  color: #1e88e5;
 }
 
 :deep(input[type="number"]) {
