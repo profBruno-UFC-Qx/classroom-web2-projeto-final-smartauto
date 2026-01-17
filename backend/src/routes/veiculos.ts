@@ -66,6 +66,14 @@ router.get("/", async (req: Request, res: Response) => {
       // : Boolean(req.query.disponiveis);
     const categoria = (req.query.categoria as string) || null;
     
+    // Parâmetros de ordenação
+    const orderBy = (req.query.order_by as string) || "id";
+    const order = (req.query.order as string)?.toLowerCase() === "desc" ? "DESC" : "ASC";
+    
+    // Validar campo de ordenação (whitelist para segurança)
+    const allowedOrderByFields = ["id", "marca", "modelo", "ano", "valor_diaria", "cor"];
+    const validOrderBy = allowedOrderByFields.includes(orderBy) ? orderBy : "id";
+    
     const queryBuilder = repository
       .createQueryBuilder("veiculo")
       .leftJoinAndSelect("veiculo.categorias", "categoria")
@@ -81,7 +89,8 @@ router.get("/", async (req: Request, res: Response) => {
       .andWhere("(:minPreco IS NULL OR veiculo.valor_diaria >= :minPreco)", { minPreco })
       .andWhere("(:maxPreco IS NULL OR veiculo.valor_diaria <= :maxPreco)", { maxPreco })
       .andWhere("veiculo.disponivel = :disponivel", { disponivel: disponivelParam })
-      .andWhere("(:categoria IS NULL OR categoria.nome = :categoria)", { categoria });
+      .andWhere("(:categoria IS NULL OR categoria.nome = :categoria)", { categoria })
+      .orderBy(`veiculo.${validOrderBy}`, order);
     
     const veiculos = await queryBuilder
       .skip(offset)
@@ -91,6 +100,52 @@ router.get("/", async (req: Request, res: Response) => {
     res.json(veiculos);
   } catch (error) {
     res.status(500).json({ error: "Erro ao listar veículos" });
+  }
+});
+
+// DELETE /veiculos/categoria - Remove associação entre categoria e veículo (requer autenticação: LOCADOR ou ADMIN)
+router.delete("/categoria", requireAuth, validate({ query: z.object({ veiculo: z.coerce.number(), categoria: z.coerce.number() }) }), requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
+  try {
+    // Validar se os parâmetros foram fornecidos
+    if (!req.query.veiculo || !req.query.categoria) {
+      return res.status(400).json({ 
+        detail: "Parâmetros 'veiculo' e 'categoria' são obrigatórios" 
+      });
+    }
+
+    const veiculoId = parseInt(req.query.veiculo as string);
+    const categoriaId = parseInt(req.query.categoria as string);
+
+    // Validar se são números válidos
+    if (isNaN(veiculoId) || isNaN(categoriaId)) {
+      return res.status(400).json({ 
+        detail: "Parâmetros 'veiculo' e 'categoria' devem ser números válidos" 
+      });
+    }
+
+    const categoriaVeiculoRepository = getConnection().getRepository(CategoriaVeiculo);
+    const veiculoRepository = getConnection().getRepository(Veiculo);
+    
+    const veiculo = await veiculoRepository.findOne({ where: { id: veiculoId } });
+    if (!veiculo) {
+      return res.status(404).json({ detail: "Veículo não encontrado" });
+    }
+    
+    const categoriaVeiculo = await categoriaVeiculoRepository.findOne({ 
+      where: { veiculo_id: veiculoId, categoria_id: categoriaId } 
+    });
+    
+    if (!categoriaVeiculo) {
+      return res.status(404).json({ 
+        detail: "Categoria associada ao veículo não encontrada" 
+      });
+    }
+    
+    await categoriaVeiculoRepository.remove(categoriaVeiculo);
+    res.json({ ok: true, detail: "Categoria associada ao veículo removida com sucesso" });
+  } catch (error) {
+    console.error("Erro ao remover associação categoria-veículo:", error);
+    res.status(500).json({ error: "Erro ao remover associação entre categoria e veículo" });
   }
 });
 

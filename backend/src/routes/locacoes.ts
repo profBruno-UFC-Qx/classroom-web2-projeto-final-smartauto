@@ -10,16 +10,16 @@ import { validate } from "../middleware/validate";
 const router = Router();
 
 const LocacaoSchema = z.object({
-  data_inicio: z.date(),
-  data_fim: z.date(),
+  data_inicio: z.coerce.date(),
+  data_fim: z.coerce.date(),
   cliente_id: z.number(),
   locador_id: z.number(),
   veiculo_id: z.number(),
 });
 
 const LocacaoUpdateSchema = z.object({
-  data_inicio: z.date().optional(),
-  data_fim: z.date().optional(),
+  data_inicio: z.coerce.date().optional(),
+  data_fim: z.coerce.date().optional(),
   cliente_id: z.number().optional(),
   locador_id: z.number().optional(),
   veiculo_id: z.number().optional(),
@@ -50,17 +50,49 @@ function sanitizeLocacao(locacao: Locacao & { valor_total?: number }) {
 }
 
 // GET /locacoes - Requer autenticação (todos os usuários autenticados)
-router.get("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
+// traz todas as locações se o usuário for ADMIN, se for LOCADOR, traz as locações do locador, se for CLIENTE, traz as locações do cliente
+router.get("/", requireAuth, async (req: Request, res: Response) => {
   try {
     const offset = parseInt(req.query.offset as string) || 0;
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
     
+    // Query params para filtros (null se não enviado)
+    const status = (req.query.status as string) || null;
+    const veiculo_id = req.query.veiculo_id ? parseInt(req.query.veiculo_id as string) : null;
+    const cliente_id = req.query.cliente_id ? parseInt(req.query.cliente_id as string) : null;
+    const locador_id = req.query.locador_id ? parseInt(req.query.locador_id as string) : null;
+    const data_inicio = req.query.data_inicio ? new Date(req.query.data_inicio as string) : null;
+    const data_fim = req.query.data_fim ? new Date(req.query.data_fim as string) : null;
+    
+    // Parâmetros de ordenação
+    const orderBy = (req.query.order_by as string) || "data_inicio";
+    const order = (req.query.order as string)?.toLowerCase() === "desc" ? "DESC" : "ASC";
+    
+    // Validar campo de ordenação (whitelist para segurança)
+    const allowedOrderByFields = ["id", "data_inicio", "data_fim", "status"];
+    const validOrderBy = allowedOrderByFields.includes(orderBy) ? orderBy : "data_inicio";
+    
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: "Usuário não autenticado" });
+    }
+    const isAdmin = user.role === Role.ADMIN;
+    const isLocador = user.role === Role.LOCADOR;
     const repository = getConnection().getRepository(Locacao);
+    
     const locacoes = await repository
       .createQueryBuilder("locacao")
       .leftJoinAndSelect("locacao.locador", "locador")
       .leftJoinAndSelect("locacao.cliente", "cliente")
       .leftJoinAndSelect("locacao.veiculo", "veiculo")
+      .where(isAdmin ? "" : isLocador ? "locacao.locador_id = :locadorId" : "locacao.cliente_id = :clienteId", { locadorId: user.id, clienteId: user.id })
+      .andWhere("(:status IS NULL OR locacao.status = :status)", { status: status })
+      .andWhere("(:veiculo_id IS NULL OR locacao.veiculo_id = :veiculo_id)", { veiculo_id: veiculo_id })
+      .andWhere("(:cliente_id IS NULL OR locacao.cliente_id = :cliente_id)", { cliente_id: cliente_id })
+      .andWhere("(:locador_id IS NULL OR locacao.locador_id = :locador_id)", { locador_id: locador_id })
+      .andWhere("(:data_inicio IS NULL OR locacao.data_inicio >= :data_inicio)", { data_inicio: data_inicio })
+      .andWhere("(:data_fim IS NULL OR locacao.data_fim = :data_fim)", { data_fim: data_fim })
+      .orderBy(`locacao.${validOrderBy}`, order)
       .skip(offset)
       .take(limit)
       .getMany();
@@ -84,51 +116,17 @@ router.get("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req
   }
 });
 
-// GET /locacoes/me - Retorna apenas locações do usuário logado (se for CLIENTE)
-router.get("/me", requireAuth, async (req: Request, res: Response) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ error: "Usuário não autenticado" });
-    }
-    
-    const offset = parseInt(req.query.offset as string) || 0;
-    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
-    
-    const repository = getConnection().getRepository(Locacao);
-    const locacoes = await repository
-      .createQueryBuilder("locacao")
-      .leftJoinAndSelect("locacao.locador", "locador")
-      .leftJoinAndSelect("locacao.cliente", "cliente")
-      .leftJoinAndSelect("locacao.veiculo", "veiculo")
-      .where("locacao.cliente_id = :clienteId", { clienteId: req.user.id })
-      .skip(offset)
-      .take(limit)
-      .getMany();
-    
-    // Adicionar valor_total calculado para cada locação
-    const locacoesComValorTotal = locacoes.map((locacao) => {
-      const valorTotal = calcularValorTotal(
-        new Date(locacao.data_inicio),
-        new Date(locacao.data_fim),
-        locacao.veiculo.valor_diaria
-      );
-      return {
-        ...locacao,
-        valor_total: valorTotal,
-      };
-    });
-    
-    res.json(locacoesComValorTotal.map(sanitizeLocacao));
-  } catch (error) {
-    res.status(500).json({ error: "Erro ao listar locações" });
-  }
-});
+// rota /me removida por evolução da rota principal
 
 // POST /locacoes - Requer autenticação (todos os usuários autenticados)
 router.post("/", requireAuth, validate({ body: LocacaoSchema }), async (req: Request, res: Response) => {
   try {
     const { data_inicio, data_fim, cliente_id, locador_id, veiculo_id } = req.body;
-    
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: "Usuário não autenticado" });
+    }
+    const isManager = user.role === Role.ADMIN || user.role === Role.LOCADOR;
     const veiculoRepository = getConnection().getRepository(Veiculo);
     const usuarioRepository = getConnection().getRepository(Usuario);
     const locacaoRepository = getConnection().getRepository(Locacao);
@@ -172,7 +170,7 @@ router.post("/", requireAuth, validate({ body: LocacaoSchema }), async (req: Req
       cliente_id,
       locador_id,
       veiculo_id,
-      status: StatusLocacao.PENDENTE,
+      status: isManager ? StatusLocacao.APROVADA : StatusLocacao.PENDENTE,
     });
     const savedLocacao = await locacaoRepository.save(locacao);
     

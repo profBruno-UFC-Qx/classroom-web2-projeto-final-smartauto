@@ -95,6 +95,12 @@ O servidor estará disponível em `http://localhost:3000` por padrão.
 
 ## Endpoints
 
+### Raiz
+
+- `GET /` - Health check da API (público)
+  - Retorna: `{ "msg": "SmartAutoApp" }`
+  - Usado para verificar se a API está funcionando
+
 ### Autenticação
 
 - `POST /auth/register` - Registra um novo usuário (público)
@@ -147,20 +153,43 @@ O servidor estará disponível em `http://localhost:3000` por padrão.
     - `ano`: number - Filtrar por ano
     - `modelo`: string - Filtrar por modelo
     - `marca`: string - Filtrar por marca
+    - `order_by`: string (padrão: "id") - Campo para ordenação. Valores permitidos: `id`, `marca`, `modelo`, `ano`, `valor_diaria`, `cor`
+    - `order`: string (padrão: "asc") - Direção da ordenação. Valores permitidos: `asc`, `desc` (case-insensitive)
   - Exemplos:
     - `GET /veiculos?categoria=Locacao&disponiveis=true` - Veículos disponíveis da categoria Locação
     - `GET /veiculos?ano=2023&marca=Honda` - Veículos Honda de 2023
     - `GET /veiculos?min_preco=50000&max_preco=150000` - Veículos na faixa de preço
     - `GET /veiculos?modelo=Civic&disponiveis=true` - Civics disponíveis
+    - `GET /veiculos?order_by=valor_diaria&order=asc` - Veículos ordenados por preço (menor para maior)
+    - `GET /veiculos?order_by=ano&order=desc` - Veículos ordenados por ano (mais novos primeiro)
 - `GET /veiculos/:veiculo_id` - Busca veículo por ID (público - retorna com categorias)
 - `POST /veiculos` - Cria veículo (requer autenticação: LOCADOR ou ADMIN)
 - `PUT /veiculos/:veiculo_id` - Atualiza veículo (requer autenticação: LOCADOR ou ADMIN)
 - `DELETE /veiculos/:veiculo_id` - Remove veículo (requer autenticação: LOCADOR ou ADMIN)
 - `POST /veiculos/categoria/:veiculo_id` - Associa categoria ao veículo (requer autenticação: LOCADOR ou ADMIN)
+- `DELETE /veiculos/categoria` - Remove associação entre categoria e veículo (requer autenticação: LOCADOR ou ADMIN)
+  - Query params obrigatórios:
+    - `veiculo`: number - ID do veículo
+    - `categoria`: number - ID da categoria
+  - Exemplo: `DELETE /veiculos/categoria?veiculo=1&categoria=2`
 
 ### Locações
 
 - `GET /locacoes` - Lista locações (requer autenticação - com paginação)
+  - Query params opcionais (podem ser combinados):
+    - `offset`: número (padrão: 0) - Paginação
+    - `limit`: número (padrão: 10, máximo: 100) - Limite de resultados
+    - `status`: string - Filtrar por status (PENDENTE, APROVADA, RECUSADA)
+    - `veiculo_id`: number - Filtrar por ID do veículo
+    - `cliente_id`: number - Filtrar por ID do cliente
+    - `locador_id`: number - Filtrar por ID do locador
+    - `data_inicio`: string (formato ISO date) - Filtrar por data de início (>=)
+    - `data_fim`: string (formato ISO date) - Filtrar por data de fim
+    - `order_by`: string (padrão: "data_inicio") - Campo para ordenação. Valores permitidos: `id`, `data_inicio`, `data_fim`, `status`
+    - `order`: string (padrão: "asc") - Direção da ordenação. Valores permitidos: `asc`, `desc` (case-insensitive)
+  - Exemplos:
+    - `GET /locacoes?order_by=data_inicio&order=desc` - Locações ordenadas por data de início (mais recentes primeiro)
+    - `GET /locacoes?status=PENDENTE&order_by=status&order=asc` - Locações pendentes ordenadas por status
 - `GET /locacoes/me` - Lista locações do usuário logado (requer autenticação)
 - `GET /locacoes/:id` - Busca locação por ID (requer autenticação)
 - `POST /locacoes` - Cria locação com status PENDENTE (requer autenticação - valor_total é calculado automaticamente)
