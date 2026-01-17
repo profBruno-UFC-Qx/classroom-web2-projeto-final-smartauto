@@ -16,6 +16,7 @@ Este projeto foi migrado do [projeto original](https://github.com/gabrielraulino
 - **reflect-metadata**: Necessário para decorators do TypeORM
 - **JWT (jsonwebtoken)**: Autenticação baseada em tokens
 - **bcrypt**: Hash de senhas
+- **Zod**: Validação de dados com schemas TypeScript
 
 ## Estrutura do Projeto
 
@@ -37,7 +38,8 @@ SmartAutoApp-Node/
 │   │   ├── Locacao.ts
 │   │   └── CategoriaVeiculo.ts
 │   ├── middleware/
-│   │   └── auth.ts              # Middleware de autenticação JWT
+│   │   ├── auth.ts              # Middleware de autenticação JWT
+│   │   └── validate.ts          # Middleware de validação Zod
 │   └── routes/
 │       ├── auth.ts              # Rotas de autenticação (login, register)
 │       ├── categorias.ts
@@ -209,6 +211,8 @@ O servidor estará disponível em `http://localhost:3000` por padrão.
 
 **Nota**: O `valor_total` não é armazenado no banco de dados, mas é calculado e retornado nas respostas da API baseado na `valor_diaria` do veículo e na duração da locação.
 
+**Importante**: Nas respostas das rotas de locações, os campos `usuario` e `senha` dos objetos `locador` e `cliente` são removidos automaticamente por questões de segurança. Além disso, os IDs `cliente_id`, `locador_id` e `veiculo_id` são omitidos quando os objetos relacionados (`cliente`, `locador`, `veiculo`) estão presentes na resposta.
+
 ### StatusLocacao (Enum)
 - `PENDENTE`: Locação criada, aguardando aprovação
 - `APROVADA`: Locação aprovada pelo locador, veículo marcado como indisponível
@@ -278,13 +282,86 @@ A API utiliza autenticação baseada em JWT (JSON Web Tokens). Para acessar rota
 | `PUT /usuarios/:id` | - | - | - | ✅ |
 | `DELETE /usuarios/:id` | - | - | - | ✅ |
 
+## Validação de Dados
+
+A API utiliza **Zod** para validação de dados em todas as rotas que recebem body, query params ou params. A validação é feita automaticamente através do middleware `validate`.
+
+### Formato de Erro de Validação
+
+Quando a validação falha, a API retorna um status `400 Bad Request` com o seguinte formato:
+
+```json
+{
+  "message": "Validation error",
+  "errors": [
+    {
+      "path": ["campo"],
+      "message": "Mensagem de erro específica"
+    }
+  ]
+}
+```
+
+Exemplo de erro ao tentar registrar um usuário com email inválido:
+
+```json
+{
+  "message": "Validation error",
+  "errors": [
+    {
+      "path": ["email"],
+      "message": "Invalid email address"
+    }
+  ]
+}
+```
+
+### Rotas com Validação
+
+Todas as rotas POST e PUT que recebem dados no body possuem validação automática:
+
+- `POST /auth/register` - Valida campos de registro
+- `POST /auth/login` - Valida credenciais
+- `POST /usuarios` - Valida dados do usuário
+- `PUT /usuarios/me` - Valida campos opcionais para atualização
+- `PUT /usuarios/me/senha` - Valida nova senha (mínimo 8 caracteres)
+- `POST /categorias` - Valida nome e descrição
+- `PUT /categorias/:categoria_id` - Valida nome e descrição
+- `POST /veiculos` - Valida dados do veículo
+- `PUT /veiculos/:veiculo_id` - Valida campos opcionais do veículo
+- `POST /locacoes` - Valida dados da locação
+- `PUT /locacoes/:id` - Valida campos opcionais da locação
+
+### Campos Opcionais
+
+Alguns campos são opcionais nos schemas de validação:
+- `telefone`, `uf`, `cidade`, `logradouro`, `numero` em `/auth/register` e `/usuarios`
+- Campos em schemas de atualização (UpdateSchema) são todos opcionais
+
+## Segurança e Sanitização
+
+### Proteção de Dados Sensíveis
+
+Por questões de segurança, a API implementa sanitização automática de dados sensíveis:
+
+1. **Locações**: Ao retornar locações, os campos `usuario` e `senha` são removidos dos objetos `locador` e `cliente`
+2. **Respostas de Login/Register**: A senha nunca é retornada nas respostas
+3. **Dados de Usuário**: Ao listar ou buscar usuários, a senha não é incluída nas respostas
+
+### Sanitização em Locações
+
+Nas rotas de locações (`GET /locacoes`, `GET /locacoes/:id`, etc.), os objetos de usuário retornados contêm apenas:
+- `id`, `nome`, `email`, `telefone`, `uf`, `cidade`, `logradouro`, `numero`, `role`
+
+Os campos `usuario` e `senha` são **sempre removidos** automaticamente.
+
 ## Notas de Migração
 
 Este projeto foi migrado de Python/FastAPI para Node.js/Express/TypeScript. As principais mudanças incluem:
 
 - **SQLModel → TypeORM**: Uso de decorators para definir entidades e relacionamentos
 - **FastAPI → Express**: Rotas convertidas para Express Router
-- **Pydantic → class-validator**: Validação de dados (não implementada nesta versão inicial)
+- **Pydantic → Zod**: Validação de dados com schemas TypeScript usando Zod
 - **SQLAlchemy Session → TypeORM Repository**: Padrão Repository para acesso a dados
 
 ## Mudanças Arquiteturais

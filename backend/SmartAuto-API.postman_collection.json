@@ -46,7 +46,7 @@
               "host": ["{{base_url}}"],
               "path": ["auth", "register"]
             },
-            "description": "Registra um novo usuário com role CLIENTE (padrão). Retorna token JWT e dados do usuário (sem senha).\n\n**Nota**: Sem o parâmetro `api_key`, o usuário é criado como CLIENTE."
+            "description": "Registra um novo usuário com role CLIENTE (padrão). Retorna token JWT e dados do usuário (sem senha).\n\n**Nota**: Sem o parâmetro `api_key`, o usuário é criado como CLIENTE.\n\n**Validação**: Os campos são validados automaticamente usando Zod. Campos opcionais: `telefone`, `uf`, `cidade`, `logradouro`, `numero`. Se a validação falhar, retorna erro 400 com detalhes."
           }
         },
         {
@@ -90,7 +90,7 @@
               "host": ["{{base_url}}"],
               "path": ["auth", "login"]
             },
-            "description": "Realiza login e retorna token JWT. Use o token no header 'Authorization: Bearer <token>' para acessar rotas protegidas."
+            "description": "Realiza login e retorna token JWT. Use o token no header 'Authorization: Bearer <token>' para acessar rotas protegidas.\n\n**Validação**: Os campos `usuario` (mínimo 3 caracteres) e `senha` (mínimo 8 caracteres) são validados automaticamente usando Zod. Se a validação falhar, retorna erro 400 com detalhes."
           }
         }
       ]
@@ -303,6 +303,32 @@
               "path": ["usuarios", "me"]
             },
             "description": "Atualiza os dados do usuário logado (não permite alterar role)"
+          }
+        },
+        {
+          "name": "Atualizar Minha Senha",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senha\": \"novaSenha123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/me/senha",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "me", "senha"]
+            },
+            "description": "Atualiza a senha do usuário logado. A senha deve ter no mínimo 8 caracteres."
           }
         },
         {
@@ -704,7 +730,7 @@
                 }
               ]
             },
-            "description": "Lista todas as locações com paginação (requer autenticação)"
+            "description": "Lista todas as locações com paginação (requer autenticação: LOCADOR ou ADMIN).\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas por questões de segurança."
           }
         },
         {
@@ -732,7 +758,7 @@
                 }
               ]
             },
-            "description": "Lista apenas as locações do usuário logado (requer autenticação)"
+            "description": "Lista apenas as locações do usuário logado (requer autenticação).\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas por questões de segurança."
           }
         },
         {
@@ -756,7 +782,7 @@
                 }
               ]
             },
-            "description": "Busca uma locação específica pelo ID (requer autenticação)"
+            "description": "Busca uma locação específica pelo ID (requer autenticação).\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas por questões de segurança."
           }
         },
         {
@@ -782,7 +808,7 @@
               "host": ["{{base_url}}"],
               "path": ["locacoes"]
             },
-            "description": "Cria uma nova locação com status PENDENTE (requer autenticação). O valor_total é calculado automaticamente baseado na valor_diaria do veículo e duração."
+            "description": "Cria uma nova locação com status PENDENTE (requer autenticação). O valor_total é calculado automaticamente baseado na valor_diaria do veículo e duração.\n\n**Validação**: Os campos são validados automaticamente usando Zod. Se a validação falhar, retorna erro 400 com detalhes."
           }
         },
         {
@@ -815,7 +841,7 @@
                 }
               ]
             },
-            "description": "Atualiza uma locação existente (requer autenticação: LOCADOR ou ADMIN). O valor_total é recalculado automaticamente."
+            "description": "Atualiza uma locação existente (requer autenticação: LOCADOR ou ADMIN). O valor_total é recalculado automaticamente.\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas.\n\n**Validação**: Os campos são validados automaticamente usando Zod. Se a validação falhar, retorna erro 400 com detalhes."
           }
         },
         {
@@ -840,7 +866,7 @@
                 }
               ]
             },
-            "description": "Aprova uma locação pendente (requer autenticação: LOCADOR ou ADMIN). Muda status para APROVADA e marca veículo como indisponível."
+            "description": "Aprova uma locação pendente (requer autenticação: LOCADOR ou ADMIN). Muda status para APROVADA e marca veículo como indisponível.\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas."
           }
         },
         {
@@ -865,7 +891,7 @@
                 }
               ]
             },
-            "description": "Recusa uma locação pendente (requer autenticação: LOCADOR ou ADMIN). Muda status para RECUSADA. Veículo permanece disponível."
+            "description": "Recusa uma locação pendente (requer autenticação: LOCADOR ou ADMIN). Muda status para RECUSADA. Veículo permanece disponível.\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas."
           }
         },
         {

@@ -42,11 +42,10 @@ export class Usuario {
   logradouro?: string;
 
   @Column({ nullable: true })
-  numero?: number;
+  numero?: string;
 
   @Column({
-    type: "varchar",
-    length: 20,
+    enum: Object.values(Role),
   })
   role!: Role;
 

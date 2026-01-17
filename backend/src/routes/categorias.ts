@@ -3,16 +3,23 @@ import { getConnection } from "../database/database";
 import { Categoria } from "../models/Categoria";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { Role } from "../models/Usuario";
+import { z } from "zod";
+import { validate } from "../middleware/validate";
+
+const CategoriaSchema = z.object({
+  nome: z.string().min(3),
+  descricao: z.string().min(3),
+});
 
 const router = Router();
 
 // POST /categorias - Requer autenticação e role LOCADOR ou ADMIN
-router.post("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
+router.post("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), validate({ body: CategoriaSchema }), async (req: Request, res: Response) => {
   try {
     const { nome, descricao } = req.body;
     const repository = getConnection().getRepository(Categoria);
     
-    const categoria = repository.create({
+    const categoria: Categoria = repository.create({
       nome,
       desc: descricao,
     });
@@ -60,22 +67,20 @@ router.get("/:categoria_id", async (req: Request, res: Response) => {
 });
 
 // PUT /categorias/:categoria_id - Requer autenticação e role LOCADOR ou ADMIN
-router.put("/:categoria_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
+router.put("/:categoria_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), validate({ body: CategoriaSchema }), async (req: Request, res: Response) => {
   try {
     const categoriaId = parseInt(req.params.categoria_id);
     const repository = getConnection().getRepository(Categoria);
     const categoria = await repository.findOne({ where: { id: categoriaId } });
-    
+    const { nome, descricao } = req.body;
     if (!categoria) {
       return res.status(404).json({ detail: "Categoria not found" });
     }
     
-    // Atualizar campos
-    if (req.body.nome !== undefined) categoria.nome = req.body.nome;
-    if (req.body.desc !== undefined) categoria.desc = req.body.desc;
-    if (req.body.descricao !== undefined) categoria.desc = req.body.descricao;
+    categoria.nome = nome;
+    categoria.desc = descricao;
     
-    const updatedCategoria = await repository.save(categoria);
+    const updatedCategoria: Categoria = await repository.save(categoria);
     res.json(updatedCategoria);
   } catch (error) {
     res.status(500).json({ error: "Erro ao atualizar categoria" });

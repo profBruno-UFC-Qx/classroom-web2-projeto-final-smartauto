@@ -21,7 +21,7 @@ const UserRegisterSchema = z.object({
   uf: z.string().min(2).optional(),
   cidade: z.string().min(3).optional(),
   logradouro: z.string().min(3).optional(),
-  numero: z.number().optional(),
+  numero: z.string().optional(),
   api_key: z.string().optional(),
 });
 
@@ -73,7 +73,7 @@ router.post("/register", validate({ body: UserRegisterSchema }), async (req: Req
 
     const hashedPassword = await bcrypt.hash(senha, 10);
 
-    const novoUsuario = repository.create({
+    const novoUsuario: Usuario = repository.create({
       nome,
       usuario,
       senha: hashedPassword,

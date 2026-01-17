@@ -4,13 +4,49 @@ import { Locacao, StatusLocacao } from "../models/Locacao";
 import { Veiculo } from "../models/Veiculo";
 import { Usuario, Role } from "../models/Usuario";
 import { requireAuth, requireRole } from "../middleware/auth";
+import { z } from "zod";
+import { validate } from "../middleware/validate";
 
 const router = Router();
+
+const LocacaoSchema = z.object({
+  data_inicio: z.date(),
+  data_fim: z.date(),
+  cliente_id: z.number(),
+  locador_id: z.number(),
+  veiculo_id: z.number(),
+});
+
+const LocacaoUpdateSchema = z.object({
+  data_inicio: z.date().optional(),
+  data_fim: z.date().optional(),
+  cliente_id: z.number().optional(),
+  locador_id: z.number().optional(),
+  veiculo_id: z.number().optional(),
+});
 
 // Função auxiliar para calcular valor total da locação
 function calcularValorTotal(dataInicio: Date, dataFim: Date, valorDiaria: number): number {
   const dias = Math.ceil((dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24));
   return dias * valorDiaria;
+}
+
+// Função auxiliar para remover dados sensíveis de usuários
+function sanitizeUsuario(usuario: Usuario): Omit<Usuario, 'usuario' | 'senha'> {
+  const { usuario: _, senha: __, ...usuarioLimpo } = usuario;
+  return usuarioLimpo;
+}
+
+// Função auxiliar para sanitizar locação completa removendo dados sensíveis de usuários e campos cliente_id, locador_id e veiculo_id
+function sanitizeLocacao(locacao: Locacao & { valor_total?: number }) {
+  return {
+    ...locacao,
+    cliente_id: undefined,
+    locador_id: undefined,
+    veiculo_id: undefined,
+    locador: sanitizeUsuario(locacao.locador),
+    cliente: sanitizeUsuario(locacao.cliente),
+  };
 }
 
 // GET /locacoes - Requer autenticação (todos os usuários autenticados)
@@ -42,7 +78,7 @@ router.get("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req
       };
     });
     
-    res.json(locacoesComValorTotal);
+    res.json(locacoesComValorTotal.map(sanitizeLocacao));
   } catch (error) {
     res.status(500).json({ error: "Erro ao listar locações" });
   }
@@ -82,14 +118,14 @@ router.get("/me", requireAuth, async (req: Request, res: Response) => {
       };
     });
     
-    res.json(locacoesComValorTotal);
+    res.json(locacoesComValorTotal.map(sanitizeLocacao));
   } catch (error) {
     res.status(500).json({ error: "Erro ao listar locações" });
   }
 });
 
 // POST /locacoes - Requer autenticação (todos os usuários autenticados)
-router.post("/", requireAuth, async (req: Request, res: Response) => {
+router.post("/", requireAuth, validate({ body: LocacaoSchema }), async (req: Request, res: Response) => {
   try {
     const { data_inicio, data_fim, cliente_id, locador_id, veiculo_id } = req.body;
     
@@ -180,14 +216,14 @@ router.get("/:id", requireAuth, async (req: Request, res: Response) => {
       valor_total: valorTotal,
     };
     
-    res.json(resposta);
+    res.json(sanitizeLocacao(resposta));
   } catch (error) {
     res.status(500).json({ error: "Erro ao buscar locação" });
   }
 });
 
 // PUT /locacoes/:id - Requer autenticação e role LOCADOR ou ADMIN
-router.put("/:id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, validate({ body: LocacaoUpdateSchema }), requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const repository = getConnection().getRepository(Locacao);
@@ -198,21 +234,7 @@ router.put("/:id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (
     }
     
     // Atualizar campos
-    if (req.body.data_inicio !== undefined) {
-      dbLocacao.data_inicio = new Date(req.body.data_inicio);
-    }
-    if (req.body.data_fim !== undefined) {
-      dbLocacao.data_fim = new Date(req.body.data_fim);
-    }
-    if (req.body.cliente_id !== undefined) {
-      dbLocacao.cliente_id = req.body.cliente_id;
-    }
-    if (req.body.locador_id !== undefined) {
-      dbLocacao.locador_id = req.body.locador_id;
-    }
-    if (req.body.veiculo_id !== undefined) {
-      dbLocacao.veiculo_id = req.body.veiculo_id;
-    }
+    Object.assign(dbLocacao, req.body);
     
     const updatedLocacao = await repository.save(dbLocacao);
     
@@ -232,7 +254,7 @@ router.put("/:id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (
         ...locacaoCompleta,
         valor_total: valorTotal,
       };
-      res.json(resposta);
+      res.json(sanitizeLocacao(resposta));
     } else {
       res.json(updatedLocacao);
     }
@@ -290,7 +312,7 @@ router.put("/:id/aprovar", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]),
         ...locacaoCompleta,
         valor_total: valorTotal,
       };
-      res.json(resposta);
+      res.json(sanitizeLocacao(resposta));
     } else {
       res.json(savedLocacao);
     }
@@ -343,7 +365,7 @@ router.put("/:id/recusar", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]),
         ...locacaoCompleta,
         valor_total: valorTotal,
       };
-      res.json(resposta);
+      res.json(sanitizeLocacao(resposta));
     } else {
       res.json(savedLocacao);
     }

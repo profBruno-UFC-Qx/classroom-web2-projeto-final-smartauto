@@ -5,13 +5,39 @@ import { Categoria } from "../models/Categoria";
 import { CategoriaVeiculo } from "../models/CategoriaVeiculo";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { Role } from "../models/Usuario";
+import { z } from "zod";
+import { validate } from "../middleware/validate";
+
+const VeiculoSchema = z.object({
+  marca: z.string().min(3),
+  modelo: z.string().min(3),
+  ano: z.number(),
+  valor_diaria: z.number(),
+  disponivel: z.boolean(),
+  cor: z.string().min(3),
+});
+
+const VeiculoUpdateSchema = z.object({
+  marca: z.string().min(3).optional(),
+  modelo: z.string().min(3).optional(),
+  ano: z.number().optional(),
+  valor_diaria: z.number().optional(),
+  disponivel: z.boolean().optional(),
+  cor: z.string().min(3).optional(),
+});
+
+const CategoriaVeiculoSchema = z.object({
+  nome_categoria: z.string().min(3),
+  descricao: z.string().min(3).optional(),
+});
 
 const router = Router();
 // POST /veiculos - Requer autenticação e role LOCADOR ou ADMIN
-router.post("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
+router.post("/", requireAuth, validate({ body: VeiculoSchema }), requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
+    const veiculoReq = req.body as z.infer<typeof VeiculoSchema>;
     const repository = getConnection().getRepository(Veiculo);
-    const veiculo = repository.create(req.body);
+    const veiculo: Veiculo = repository.create(veiculoReq);
     const savedVeiculo = await repository.save(veiculo);
     res.status(201).json(savedVeiculo);
   } catch (error) {
@@ -86,7 +112,7 @@ router.get("/:veiculo_id", async (req: Request, res: Response) => {
 });
 
 // PUT /veiculos/:veiculo_id - Requer autenticação e role LOCADOR ou ADMIN
-router.put("/:veiculo_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
+router.put("/:veiculo_id", requireAuth, validate({ body: VeiculoUpdateSchema }), requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const veiculoId = parseInt(req.params.veiculo_id);
     const repository = getConnection().getRepository(Veiculo);
@@ -96,12 +122,9 @@ router.put("/:veiculo_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]),
       return res.status(404).json({ detail: "Veículo não encontrado" });
     }
     
+    const veiculoReq = req.body as z.infer<typeof VeiculoUpdateSchema>;
     // Atualizar campos
-    Object.keys(req.body).forEach((key) => {
-      if (req.body[key] !== undefined && key !== "id") {
-        (dbVeiculo as any)[key] = req.body[key];
-      }
-    });
+    Object.assign(dbVeiculo, veiculoReq);
     
     const updatedVeiculo = await repository.save(dbVeiculo);
     res.json(updatedVeiculo);
@@ -129,13 +152,12 @@ router.delete("/:veiculo_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN
 });
 
 // POST /veiculos/categoria/:veiculo_id - Requer autenticação e role LOCADOR ou ADMIN
-router.post("/categoria/:veiculo_id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
+router.post("/categoria/:veiculo_id", requireAuth, validate({ body: CategoriaVeiculoSchema }), requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const veiculoId = parseInt(req.params.veiculo_id);
-    const { nome_categoria, descricao } = req.body;
+    const { nome_categoria, descricao } = req.body as z.infer<typeof CategoriaVeiculoSchema>;
     
     const categoriaRepository = getConnection().getRepository(Categoria);
-    const veiculoRepository = getConnection().getRepository(Veiculo);
     const categoriaVeiculoRepository = getConnection().getRepository(CategoriaVeiculo);
     
     // Buscar ou criar categoria
