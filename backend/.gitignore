@@ -1,7 +1,7 @@
 node_modules/
 dist/
 .env
-*.db
+# *.db
 *.sql
 .DS_Store
 .vscode/

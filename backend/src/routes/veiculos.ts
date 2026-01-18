@@ -10,7 +10,7 @@ import { validate } from "../middleware/validate";
 
 const VeiculoSchema = z.object({
   marca: z.string().min(3),
-  modelo: z.string().min(3),
+  modelo: z.string().min(2),
   ano: z.number(),
   valor_diaria: z.number(),
   disponivel: z.boolean(),
