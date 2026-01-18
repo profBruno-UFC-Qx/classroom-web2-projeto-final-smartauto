@@ -392,6 +392,10 @@ async function deleteVehicle(id: number) {
           v-model="vehicleStore.currentPage"
           :length="vehicleStore.pagination.totalPages"
           :total-visible="7"
+          first-icon="mdi-chevron-double-left"
+          prev-icon="mdi-chevron-left"
+          next-icon="mdi-chevron-right"
+          last-icon="mdi-chevron-double-right"
           @update:model-value="changePage"
         ></v-pagination>
       </v-col>

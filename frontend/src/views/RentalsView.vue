@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRentalStore } from '@/stores/rentals'
 import { useVehicleStore } from '@/stores/vehicles'
 import { useUserStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import { RentalStatus } from '@/types'
-import type { Locacao, CreateRentalData } from '@/types'
+import type { Locacao, CreateRentalData, UpdateRentalData } from '@/types'
 
 const route = useRoute()
 const rentalStore = useRentalStore()
@@ -17,6 +17,7 @@ const authStore = useAuthStore()
 const showModal = ref(false)
 const editingRental = ref<Locacao | null>(null)
 const statusFilter = ref<RentalStatus | 'all'>('all')
+const formTotal = ref(0)
 
 const formData = ref({
   data_inicio: '',
@@ -30,32 +31,48 @@ const formData = ref({
 const canManageRentals = computed(() => authStore.isAdmin || authStore.isLocador)
 const isCliente = computed(() => authStore.isCliente)
 
-const filteredRentals = computed(() => {
-  if (statusFilter.value === 'all') {
-    return rentalStore.rentals
+const filteredRentals = computed(() => rentalStore.rentals)
+
+const availableVehiclesForSelect = computed(() => {
+  if (editingRental.value) {
+    const allVehicles = [...vehicleStore.vehicles]
+    const selectedVehicleId = formData.value.veiculo_id
+    const hasSelectedVehicle = allVehicles.some(v => v.id === selectedVehicleId)
+
+    if (!hasSelectedVehicle && editingRental.value.veiculo) {
+      allVehicles.push(editingRental.value.veiculo)
+    }
+
+    return allVehicles
   }
-  return rentalStore.rentals.filter(r => r.status === statusFilter.value)
+  return vehicleStore.vehicles.filter(v => v.disponivel)
+})
+
+async function changePage(page: number) {
+  await rentalStore.fetchRentals(page, statusFilter.value === 'all' ? null : statusFilter.value)
+}
+
+watch(() => statusFilter.value, () => {
+  rentalStore.currentPage = 1
+  changePage(1)
 })
 
 onMounted(async () => {
-  await rentalStore.fetchRentals()
+  await rentalStore.fetchRentals(1, statusFilter.value === 'all' ? null : statusFilter.value)
   await vehicleStore.fetchAllVehicles()
   await userStore.fetchUsers()
 
-  // Se vier da página de veículos com veículo selecionado
   const veiculoId = route.query.veiculo
   if (veiculoId) {
     const id = typeof veiculoId === 'string' ? parseInt(veiculoId) : Number(veiculoId)
     if (!isNaN(id)) {
-      // Abrir modal com veículo preenchido
       openCreateModal(id)
-      // Limpar query string
       window.history.replaceState({}, '', '/locacoes')
     }
   }
 })
 
-function openCreateModal(veiculoId?: number) {
+async function openCreateModal(veiculoId?: number) {
   editingRental.value = null
   formData.value = {
     data_inicio: '',
@@ -66,19 +83,21 @@ function openCreateModal(veiculoId?: number) {
     status: RentalStatus.PENDENTE
   }
   showModal.value = true
+  await updateFormTotal()
 }
 
-function openEditModal(rental: Locacao) {
+async function openEditModal(rental: Locacao) {
   editingRental.value = rental
   formData.value = {
     data_inicio: String(rental.data_inicio),
     data_fim: String(rental.data_fim),
     cliente_id: rental.cliente_id,
-    locador_id: rental.locador_id,
+    locador_id: rental.locador_id || 0,
     veiculo_id: rental.veiculo_id,
     status: rental.status
   }
   showModal.value = true
+  await updateFormTotal()
 }
 
 function closeModal() {
@@ -101,10 +120,16 @@ async function handleSubmit() {
   }
 
   if (editingRental.value && editingRental.value.id) {
-    // Na edição, enviar todos os dados (backend trata o status)
-    await rentalStore.updateRental(editingRental.value.id, formData.value)
+    const updateData: UpdateRentalData & { locador_id?: number | null } = { ...formData.value }
+    if (authStore.isAdmin) {
+      if (updateData.locador_id === 0) {
+        updateData.locador_id = null as unknown as number
+      }
+    } else {
+      delete updateData.locador_id
+    }
+    await rentalStore.updateRental(editingRental.value.id, updateData as UpdateRentalData)
   } else {
-    // Na criação: se for cliente, locador_id = 0; se for admin/locador, locador_id = usuário da sessão
     const locadorId = isCliente.value ? 0 : (authStore.user?.id || 0)
 
     const createData: Omit<CreateRentalData, 'status'> & { status?: RentalStatus } = {
@@ -119,24 +144,28 @@ async function handleSubmit() {
 
   if (!rentalStore.error) {
     closeModal()
+    await rentalStore.fetchRentals(rentalStore.currentPage, statusFilter.value === 'all' ? null : statusFilter.value)
   }
 }
 
 async function deleteRental(id: number) {
   if (confirm('Tem certeza que deseja deletar esta locação?')) {
     await rentalStore.deleteRental(id)
+    await rentalStore.fetchRentals(rentalStore.currentPage, statusFilter.value === 'all' ? null : statusFilter.value)
   }
 }
 
 async function approveRental(id: number) {
   if (confirm('Aprovar esta locação?')) {
     await rentalStore.approveRental(id)
+    await rentalStore.fetchRentals(rentalStore.currentPage, statusFilter.value === 'all' ? null : statusFilter.value)
   }
 }
 
 async function rejectRental(id: number) {
   if (confirm('Recusar esta locação?')) {
     await rentalStore.rejectRental(id)
+    await rentalStore.fetchRentals(rentalStore.currentPage, statusFilter.value === 'all' ? null : statusFilter.value)
   }
 }
 
@@ -160,12 +189,66 @@ function calculateDays(dataInicio: Date | string, dataFim: Date | string): numbe
   return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: Date | string): number {
-  const vehicle = vehicleStore.vehicles.find(v => v.id === veiculo_id)
-  if (!vehicle) return 0
-  const days = calculateDays(dataInicio, dataFim)
-  return days * vehicle.valor_diaria
+async function getVehicleValorDiaria(veiculo_id: number): Promise<number> {
+  const vehicleFromStore = vehicleStore.vehicles.find(v => v.id === veiculo_id)
+  if (vehicleFromStore) {
+    return vehicleFromStore.valor_diaria
+  }
+
+  const vehicleFromBackend = await vehicleStore.fetchVehicleById(veiculo_id)
+  if (vehicleFromBackend) {
+    return vehicleFromBackend.valor_diaria
+  }
+
+  return 0
 }
+
+async function updateFormTotal() {
+  if (!formData.value.veiculo_id || !formData.value.data_inicio || !formData.value.data_fim) {
+    formTotal.value = 0
+    return
+  }
+
+  const valorDiaria = await getVehicleValorDiaria(formData.value.veiculo_id)
+  if (valorDiaria === 0) {
+    formTotal.value = 0
+    return
+  }
+
+  const days = calculateDays(formData.value.data_inicio, formData.value.data_fim)
+  formTotal.value = days * valorDiaria
+}
+
+function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: Date | string, veiculo?: { valor_diaria: number }): number {
+  if (veiculo?.valor_diaria) {
+    const days = calculateDays(dataInicio, dataFim)
+    return days * veiculo.valor_diaria
+  }
+
+  const vehicle = vehicleStore.vehicles.find(v => v.id === veiculo_id)
+  if (vehicle) {
+    const days = calculateDays(dataInicio, dataFim)
+    return days * vehicle.valor_diaria
+  }
+
+  return 0
+}
+
+function getRentalTotal(rental: Locacao): number {
+  if (rental.valor_total) {
+    return rental.valor_total
+  }
+
+  if (rental.veiculo?.valor_diaria) {
+    return calculateTotal(rental.veiculo_id, rental.data_inicio, rental.data_fim, rental.veiculo)
+  }
+
+  return calculateTotal(rental.veiculo_id, rental.data_inicio, rental.data_fim)
+}
+
+watch([() => formData.value.veiculo_id, () => formData.value.data_inicio, () => formData.value.data_fim], () => {
+  updateFormTotal()
+})
 </script>
 
 <template>
@@ -249,7 +332,7 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
                 {{ calculateDays(rental.data_inicio, rental.data_fim) }}
               </td>
               <td class="text-body2 font-weight-bold text-primary">
-                R$ {{ calculateTotal(rental.veiculo_id, rental.data_inicio, rental.data_fim).toFixed(2) }}
+                R$ {{ getRentalTotal(rental).toFixed(2) }}
               </td>
               <td>
                 <v-chip
@@ -301,7 +384,29 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
       </v-col>
     </v-row>
 
-    <v-row v-else>
+    <v-row v-if="rentalStore.pagination && rentalStore.pagination.totalPages > 1" class="mt-4">
+      <v-col cols="12" class="d-flex justify-center">
+        <v-pagination
+          v-model="rentalStore.currentPage"
+          :length="rentalStore.pagination.totalPages"
+          :total-visible="7"
+          first-icon="mdi-chevron-double-left"
+          prev-icon="mdi-chevron-left"
+          next-icon="mdi-chevron-right"
+          last-icon="mdi-chevron-double-right"
+          @update:model-value="changePage"
+        ></v-pagination>
+      </v-col>
+      <v-col cols="12" class="text-center">
+        <p class="text-body2 text-disabled">
+          Mostrando {{ ((rentalStore.currentPage - 1) * rentalStore.itemsPerPage) + 1 }} -
+          {{ Math.min(rentalStore.currentPage * rentalStore.itemsPerPage, rentalStore.pagination?.total || 0) }}
+          de {{ rentalStore.pagination?.total || 0 }} locações
+        </p>
+      </v-col>
+    </v-row>
+
+    <v-row v-else-if="filteredRentals.length === 0 && !rentalStore.loading">
       <v-col cols="12" class="text-center py-12">
         <v-icon size="48" class="text-disabled mb-4">mdi-calendar-off</v-icon>
         <p class="text-body1 text-disabled">Nenhuma locação encontrada</p>
@@ -318,7 +423,7 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
           <v-form @submit.prevent="handleSubmit">
             <v-select
               v-model.number="formData.veiculo_id"
-              :items="vehicleStore.vehicles.filter(v => v.disponivel)"
+              :items="availableVehiclesForSelect"
               item-title="modelo"
               item-value="id"
               label="Veículo"
@@ -326,6 +431,9 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
               density="compact"
               class="mb-3"
             >
+              <template v-slot:selection="{ item }">
+                {{ item.raw.marca }} {{ item.raw.modelo }}
+              </template>
               <template v-slot:item="{ item, props }">
                 <v-list-item v-bind="props">
                   <template v-slot:title>
@@ -355,6 +463,17 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
               class="mb-3"
             ></v-text-field>
 
+            <v-select
+              v-if="authStore.isAdmin && editingRental"
+              v-model.number="formData.locador_id"
+              :items="[{ id: 0, nome: 'Nenhum' }, ...userStore.locadorUsers, ...userStore.adminUsers.filter(u => u.id !== authStore.user?.id)]"
+              item-title="nome"
+              item-value="id"
+              label="Locador"
+              density="compact"
+              class="mb-3"
+            ></v-select>
+
             <v-text-field
               v-model="formData.data_inicio"
               label="Data de Início"
@@ -379,7 +498,7 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
                   <strong>Dias:</strong> {{ calculateDays(formData.data_inicio, formData.data_fim) }}
                 </div>
                 <div class="text-body2 font-weight-bold text-primary">
-                  <strong>Total:</strong> R$ {{ calculateTotal(formData.veiculo_id, formData.data_inicio, formData.data_fim).toFixed(2) }}
+                  <strong>Total:</strong> R$ {{ formTotal.toFixed(2) }}
                 </div>
               </v-card-text>
             </v-card>
