@@ -230,7 +230,7 @@ async function deleteVehicle(id: number) {
             color="secondary"
             variant="outlined"
             prepend-icon="mdi-filter"
-            height="40"
+            density="compact"
             @click="showFilters = !showFilters"
           >
             Filtros
@@ -239,7 +239,7 @@ async function deleteVehicle(id: number) {
             v-if="canManage"
             color="primary"
             prepend-icon="mdi-plus"
-            height="40"
+            density="compact"
             @click="openCreateModal"
           >
             Novo Veículo
