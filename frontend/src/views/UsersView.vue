@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useUserStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import { UserRole } from '@/types'
@@ -34,15 +34,15 @@ const formData = ref({
 
 const canManage = computed(() => authStore.isAdmin)
 
-const filteredUsers = computed(() => {
-  if (roleFilter.value === 'all') {
-    return userStore.users
-  }
-  return userStore.users.filter((u: User) => u.role === roleFilter.value)
-})
+// Lista já vem paginada/filtrada do backend
+const filteredUsers = computed(() => userStore.users)
 
 onMounted(async () => {
-  await userStore.fetchUsers()
+  await userStore.fetchUsers(1, roleFilter.value)
+})
+
+watch(roleFilter, async (val) => {
+  await userStore.fetchUsers(1, val)
 })
 
 function openCreateModal() {
@@ -159,6 +159,10 @@ function getRoleColor(role: UserRole): string {
     [UserRole.CLIENTE]: 'info'
   }
   return colors[role] || 'default'
+}
+
+function changePage(page: number) {
+  userStore.fetchUsers(page, roleFilter.value)
 }
 </script>
 
@@ -283,6 +287,30 @@ function getRoleColor(role: UserRole): string {
             </tr>
           </tbody>
         </v-table>
+      </v-col>
+    </v-row>
+
+    <!-- Paginação -->
+    <v-row v-if="userStore.totalPages > 1" class="mt-4 align-center">
+      <v-col cols="12" sm="6" md="4">
+        <v-select
+          v-model="userStore.itemsPerPage"
+          :items="[5, 10, 20, 50]"
+          label="Itens por página"
+          density="compact"
+          variant="outlined"
+          @update:model-value="() => userStore.fetchUsers(1, roleFilter)"
+        ></v-select>
+      </v-col>
+      <v-col cols="12" sm="6" md="8" class="text-right">
+        <v-pagination
+          v-model="userStore.currentPage"
+          :length="userStore.totalPages"
+          @update:model-value="changePage"
+        ></v-pagination>
+        <div class="text-caption mt-2">
+          Página {{ userStore.currentPage }} de {{ userStore.totalPages }} — Total: {{ userStore.total }}
+        </div>
       </v-col>
     </v-row>
 

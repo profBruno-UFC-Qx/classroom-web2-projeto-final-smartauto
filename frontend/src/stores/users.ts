@@ -1,37 +1,60 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { apiService } from '@/services/api'
-import type { User, CreateUserData, UpdateUserData } from '@/types'
+import type { User, CreateUserData, UpdateUserData, ApiResponse } from '@/types'
+import { UserRole } from '@/types'
 
 export const useUserStore = defineStore('users', () => {
+    type PaginationMeta = {
+      total: number
+      page: number
+      limit: number
+      totalPages: number
+      hasNext: boolean
+      hasPrev: boolean
+    }
+    type UsersApiResponse = ApiResponse<User[]> & { pagination?: PaginationMeta }
   const users = ref<User[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const currentPage = ref(1)
   const itemsPerPage = ref(10)
+  const total = ref(0)
+  const totalPages = ref(1)
+  const hasNext = ref(false)
+  const hasPrev = ref(false)
 
   const adminUsers = computed(() => users.value.filter(u => u.role === 'admin'))
   const locadorUsers = computed(() => users.value.filter(u => u.role === 'locador'))
   const clienteUsers = computed(() => users.value.filter(u => u.role === 'cliente'))
 
-  function buildQuery(pageNum: number) {
+  function buildQuery(pageNum: number, role?: UserRole | 'all') {
     const offset = (pageNum - 1) * itemsPerPage.value
     const params = new URLSearchParams()
     params.set('offset', String(offset))
     params.set('limit', String(itemsPerPage.value))
+    if (role && role !== 'all') {
+      params.set('funcao', role)
+    }
     return params.toString()
   }
 
-  async function fetchUsers(pageNum = 1) {
+  async function fetchUsers(pageNum = 1, role?: UserRole | 'all') {
     loading.value = true
     error.value = null
     try {
-      const query = buildQuery(pageNum)
-      const response = await apiService.get<User[]>(`/usuarios?${query}`)
+      const query = buildQuery(pageNum, role)
+      const response = (await apiService.get<User[]>(`/usuarios?${query}`)) as UsersApiResponse
 
       if (response.success && response.data) {
         users.value = response.data
         currentPage.value = pageNum
+        if (response.pagination) {
+          total.value = response.pagination.total
+          totalPages.value = response.pagination.totalPages
+          hasNext.value = response.pagination.hasNext
+          hasPrev.value = response.pagination.hasPrev
+        }
       } else {
         error.value = response.message || 'Erro ao buscar usuários'
       }
@@ -134,6 +157,10 @@ export const useUserStore = defineStore('users', () => {
     error,
     currentPage,
     itemsPerPage,
+    total,
+    totalPages,
+    hasNext,
+    hasPrev,
     adminUsers,
     locadorUsers,
     clienteUsers,

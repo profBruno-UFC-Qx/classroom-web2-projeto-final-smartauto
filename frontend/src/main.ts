@@ -1,4 +1,3 @@
-import '@mdi/font/css/materialdesignicons.css'
 import './assets/main.css'
 import 'vuetify/styles'
 
@@ -11,7 +10,6 @@ import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
 import App from './App.vue'
 import router from './router'
-import { useAuthStore } from '@/stores/auth'
 
 const vuetify = createVuetify({
   components,
