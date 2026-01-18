@@ -239,7 +239,7 @@ async function deleteVehicle(id: number) {
             v-if="canManage"
             color="primary"
             prepend-icon="mdi-plus"
-            height="40"
+            density="compact"
             @click="openCreateModal"
           >
             Novo Veículo
