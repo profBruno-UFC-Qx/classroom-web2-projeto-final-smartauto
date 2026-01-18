@@ -5,19 +5,20 @@ import { Usuario, Role } from "../models/Usuario";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { z } from "zod";
 import { validate } from "../middleware/validate";
+import { Like } from "typeorm";
 
 const router = Router();
 
 const UsuarioSchema = z.object({
   nome: z.string().min(3),
   usuario: z.string().min(3),
-  senha: z.string().min(8),
+  senha: z.string().min(8).optional(),
   telefone: z.string().min(11).optional(),
   email: z.email(),
   uf: z.string().min(2).optional(),
   cidade: z.string().min(3).optional(),
   logradouro: z.string().min(3).optional(),
-  numero: z.number().optional(),
+  numero: z.coerce.number().optional(),
   role: z.enum(Role),
 });
 
@@ -81,14 +82,49 @@ router.get("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req
   try {
     const offset = parseInt(req.query.offset as string) || 0;
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+    const page = Math.floor(offset / limit) + 1;
+
+    const nome = (req.query.nome as string) || null;
+    const funcao = (req.query.funcao as Role) || null;
     
     const repository = getConnection().getRepository(Usuario);
+    
+    // Construir condições where
+    const whereConditions: any = {};
+    if (nome) {
+      whereConditions.nome = Like(`%${nome}%`);
+    }
+    if (funcao) {
+      whereConditions.role = funcao;
+    }
+    
+    // Contar total de registros com os filtros aplicados
+    const total = await repository.count({ where: whereConditions });
+    
+    // Buscar usuários paginados
     const usuarios = await repository.find({
       skip: offset,
       take: limit,
+      where: whereConditions,
     });
     
-    res.json(usuarios);
+    // Calcular metadados de paginação
+    const totalPages = Math.ceil(total / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+    
+    res.json({
+      success: true,
+      data: usuarios,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext,
+        hasPrev,
+      },
+    });
   } catch (error) {
     res.status(500).json({ error: "Erro ao listar usuários" });
   }
@@ -157,46 +193,9 @@ router.put("/me/senha", requireAuth, validate({ body: senhaSchema }), async (req
     res.status(500).json({ error: "Erro ao atualizar senha do usuário" });
   }
 });
-// GET /usuarios/nome/:nome (busca por nome) - DEVE VIR ANTES DE /:id
-router.get("/nome/:nome", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
-  try {
-    const nome = req.params.nome;
-    const repository = getConnection().getRepository(Usuario);
-    const usuarios = await repository
-      .createQueryBuilder("usuario")
-      .where("usuario.nome LIKE :nome", { nome: `%${nome}%` })
-      .getMany();
-    
-    if (!usuarios || usuarios.length === 0) {
-      return res.status(404).json({ detail: "Usuário não encontrado" });
-    }
-    
-    res.json(usuarios);
-  } catch (error) {
-    res.status(500).json({ error: "Erro ao buscar usuário por nome" });
-  }
-});
 
-// GET /usuarios/role/:role - DEVE VIR ANTES DE /:id
-router.get("/role/:role", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
-  try {
-    const role = req.params.role as Role;
-    const repository = getConnection().getRepository(Usuario);
-    const usuarios = await repository.find({
-      where: { role },
-    });
-    
-    if (!usuarios || usuarios.length === 0) {
-      return res.status(404).json({ detail: "Usuários não encontrados" });
-    }
-    
-    res.json(usuarios);
-  } catch (error) {
-    res.status(500).json({ error: "Erro ao buscar usuários por role" });
-  }
-});
 
-// GET /usuarios/:id - DEVE VIR DEPOIS DAS ROTAS ESPECÍFICAS
+// GET /usuarios/:id
 router.get("/:id", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const userId = parseInt(req.params.id);
@@ -225,9 +224,13 @@ router.put("/:id", requireAuth, validate({ body: UsuarioSchema }), requireRole([
     }
     
     Object.assign(dbUsuario, req.body);
-    dbUsuario.senha = await bcrypt.hash(req.body.senha, 10);
-    await repository.save(dbUsuario);
-    res.json({ message: "Usuário atualizado com sucesso" });
+    if (req.body.senha) {
+      dbUsuario.senha = await bcrypt.hash(req.body.senha, 10);
+    }
+    const updatedUsuario = await repository.save(dbUsuario);
+    // Remover senha da resposta (por segurança)
+    const { senha: _, ...userWithoutPassword } = updatedUsuario;
+    res.json(userWithoutPassword);
   } catch (error) {
     res.status(500).json({ error: "Erro ao atualizar usuário" });
   }
