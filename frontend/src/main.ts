@@ -46,6 +46,7 @@ app.use(router)
 app.use(vuetify)
 
 const authStore = useAuthStore()
-authStore.logout()
+// Inicializar a sessão se houver token salvo
+authStore.initialize()
 
 app.mount('#app')

@@ -32,6 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
         token.value = response.data.token
         user.value = response.data.user
         apiService.setToken(response.data.token)
+        localStorage.setItem('auth_token', response.data.token)
         return true
       }
       error.value = response.message || 'Erro ao fazer login'
@@ -61,10 +62,37 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function initialize() {
+    // Verifica se há um token salvo no localStorage
+    const savedToken = localStorage.getItem('auth_token')
+    if (!savedToken) {
+      return
+    }
+
+    // Configura o token no serviço de API
+    token.value = savedToken
+    apiService.setToken(savedToken)
+
+    // Tenta obter os dados do usuário usando o token
+    try {
+      const response = await apiService.get<{ user: User }>('/auth/me')
+      if (response.success && response.data?.user) {
+        user.value = response.data.user
+      } else {
+        // Token inválido ou expirado, limpa a sessão
+        logout()
+      }
+    } catch {
+      // Erro ao validar token, limpa a sessão
+      logout()
+    }
+  }
+
   function logout() {
     user.value = null
     token.value = null
     apiService.clearToken()
+    localStorage.removeItem('auth_token')
   }
 
   return {
@@ -79,6 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
     hasPermission,
     login,
     register,
-    logout
+    logout,
+    initialize
   }
 })
