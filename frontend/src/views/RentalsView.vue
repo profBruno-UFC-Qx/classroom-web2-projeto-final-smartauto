@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useRentalStore } from '@/stores/rentals'
 import { useVehicleStore } from '@/stores/vehicles'
 import { useUserStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import { RentalStatus } from '@/types'
-import type { Locacao } from '@/types'
+import type { Locacao, CreateRentalData } from '@/types'
 
+const route = useRoute()
 const rentalStore = useRentalStore()
 const vehicleStore = useVehicleStore()
 const userStore = useUserStore()
@@ -20,12 +22,13 @@ const formData = ref({
   data_inicio: '',
   data_fim: '',
   cliente_id: 0,
-  locador_id: authStore.user?.id || 0,
+  locador_id: 0,
   veiculo_id: 0,
   status: RentalStatus.PENDENTE
 })
 
 const canManageRentals = computed(() => authStore.isAdmin || authStore.isLocador)
+const isCliente = computed(() => authStore.isCliente)
 
 const filteredRentals = computed(() => {
   if (statusFilter.value === 'all') {
@@ -38,16 +41,28 @@ onMounted(async () => {
   await rentalStore.fetchRentals()
   await vehicleStore.fetchAllVehicles()
   await userStore.fetchUsers()
+
+  // Se vier da página de veículos com veículo selecionado
+  const veiculoId = route.query.veiculo
+  if (veiculoId) {
+    const id = typeof veiculoId === 'string' ? parseInt(veiculoId) : Number(veiculoId)
+    if (!isNaN(id)) {
+      // Abrir modal com veículo preenchido
+      openCreateModal(id)
+      // Limpar query string
+      window.history.replaceState({}, '', '/locacoes')
+    }
+  }
 })
 
-function openCreateModal() {
+function openCreateModal(veiculoId?: number) {
   editingRental.value = null
   formData.value = {
     data_inicio: '',
     data_fim: '',
-    cliente_id: 0,
-    locador_id: authStore.user?.id || 0,
-    veiculo_id: 0,
+    cliente_id: isCliente.value && authStore.user?.id ? authStore.user.id : 0,
+    locador_id: 0,
+    veiculo_id: veiculoId || formData.value.veiculo_id || 0,
     status: RentalStatus.PENDENTE
   }
   showModal.value = true
@@ -86,9 +101,18 @@ async function handleSubmit() {
   }
 
   if (editingRental.value && editingRental.value.id) {
+    // Na edição, enviar todos os dados (backend trata o status)
     await rentalStore.updateRental(editingRental.value.id, formData.value)
   } else {
-    await rentalStore.createRental(formData.value)
+    // Na criação, enviar sem status e com locador_id vazio (backend trata automaticamente)
+    const createData: Omit<CreateRentalData, 'status'> & { status?: RentalStatus } = {
+      data_inicio: formData.value.data_inicio,
+      data_fim: formData.value.data_fim,
+      cliente_id: formData.value.cliente_id,
+      locador_id: 0,
+      veiculo_id: formData.value.veiculo_id
+    }
+    await rentalStore.createRental(createData as CreateRentalData)
   }
 
   if (!rentalStore.error) {
@@ -169,12 +193,11 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
       </v-col>
       <v-col cols="12" sm="6" md="4" class="text-right">
         <v-btn
-          v-if="canManageRentals"
           color="primary"
           prepend-icon="mdi-plus"
           @click="openCreateModal"
         >
-          Nova Locação
+          {{ isCliente ? 'Nova Solicitação' : 'Nova Locação' }}
         </v-btn>
       </v-col>
     </v-row>
@@ -313,6 +336,7 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
             </v-select>
 
             <v-select
+              v-if="!isCliente"
               v-model.number="formData.cliente_id"
               :items="userStore.clienteUsers"
               item-title="nome"
@@ -322,6 +346,14 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
               density="compact"
               class="mb-3"
             ></v-select>
+            <v-text-field
+              v-else
+              :model-value="authStore.user?.nome || 'Cliente'"
+              label="Cliente"
+              readonly
+              density="compact"
+              class="mb-3"
+            ></v-text-field>
 
             <v-text-field
               v-model="formData.data_inicio"
@@ -340,19 +372,6 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
               density="compact"
               class="mb-3"
             ></v-text-field>
-
-            <v-select
-              v-model="formData.status"
-              :items="[
-                { title: 'Pendente', value: RentalStatus.PENDENTE },
-                { title: 'Aprovada', value: RentalStatus.APROVADA },
-                { title: 'Recusada', value: RentalStatus.RECUSADA }
-              ]"
-              label="Status"
-              required
-              density="compact"
-              class="mb-3"
-            ></v-select>
 
             <!-- Resumo -->
             <v-card v-if="formData.veiculo_id && formData.data_inicio && formData.data_fim" class="mb-3" variant="outlined">

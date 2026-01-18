@@ -13,7 +13,7 @@ const LocacaoSchema = z.object({
   data_inicio: z.coerce.date(),
   data_fim: z.coerce.date(),
   cliente_id: z.number(),
-  locador_id: z.number(),
+  locador_id: z.number().nullable().transform(val => val === 0 ? null : val),
   veiculo_id: z.number(),
 });
 
@@ -41,7 +41,7 @@ function sanitizeUsuario(usuario: Usuario): Omit<Usuario, 'usuario' | 'senha'> {
 function sanitizeLocacao(locacao: Locacao & { valor_total?: number }) {
   return {
     ...locacao,
-    locador: sanitizeUsuario(locacao.locador),
+    locador: locacao.locador ? sanitizeUsuario(locacao.locador) : null,
     cliente: sanitizeUsuario(locacao.cliente),
   };
 }
@@ -162,17 +162,18 @@ router.post("/", requireAuth, validate({ body: LocacaoSchema }), async (req: Req
       return res.status(404).json({ detail: "Veículo não encontrado" });
     }
     
-    // Verificar locador (deve ser LOCADOR ou ADMIN)
-    const locador = await usuarioRepository.findOne({
-      where: { id: locador_id },
-    });
-    if (!locador) {
-      return res.status(404).json({ detail: "Locador não encontrado" });
-    }
-    if (locador.role !== Role.LOCADOR && locador.role !== Role.ADMIN) {
-      return res.status(403).json({ detail: "Locador deve ter role LOCADOR ou ADMIN" });
-    }
+    // // Verificar locador (deve ser LOCADOR ou ADMIN)
+    // const locador = await usuarioRepository.findOne({
+    //   where: { id: locador_id },
+    // });
+    // if (!locador) {
+    //   return res.status(404).json({ detail: "Locador não encontrado" });
+    // }
+    // if (locador.role !== Role.LOCADOR && locador.role !== Role.ADMIN) {
+    //   return res.status(403).json({ detail: "Locador deve ter role LOCADOR ou ADMIN" });
+    // }
     
+
     // Verificar cliente
     const cliente = await usuarioRepository.findOne({
       where: { id: cliente_id },
@@ -190,11 +191,14 @@ router.post("/", requireAuth, validate({ body: LocacaoSchema }), async (req: Req
     // Criar locação com status PENDENTE
     const dataInicio = new Date(data_inicio);
     const dataFim = new Date(data_fim);
+    // Garantir que locador_id seja null se for 0 (schema Zod já faz isso, mas garantimos aqui também)
+    const finalLocadorId = locador_id === 0 || locador_id === null ? null : locador_id;
+    
     const locacao = locacaoRepository.create({
       data_inicio: dataInicio,
       data_fim: dataFim,
       cliente_id,
-      locador_id,
+      locador_id: finalLocadorId,
       veiculo_id,
       status: isManager ? StatusLocacao.APROVADA : StatusLocacao.PENDENTE,
     });
@@ -318,11 +322,14 @@ router.put("/:id/aprovar", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]),
         detail: `Locação não pode ser aprovada. Status atual: ${locacao.status}` 
       });
     }
-    
+    // Se locador_id for null, marcar como locador o usuário logado
+    if (locacao.locador_id === null) {
+      locacao.locador_id = req.user?.id ?? null;
+    }
     // Atualizar status para APROVADA
     locacao.status = StatusLocacao.APROVADA;
     const savedLocacao = await repository.save(locacao);
-    
+    console.log(savedLocacao);
     // Marcar veículo como indisponível
     if (locacao.veiculo) {
       locacao.veiculo.disponivel = false;

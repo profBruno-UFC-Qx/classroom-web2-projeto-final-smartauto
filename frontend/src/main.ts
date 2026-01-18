@@ -1,3 +1,4 @@
+import '@mdi/font/css/materialdesignicons.css'
 import './assets/main.css'
 import 'vuetify/styles'
 
@@ -23,6 +24,7 @@ const vuetify = createVuetify({
     }
   },
   theme: {
+    defaultTheme: 'light',
     themes: {
       light: {
         colors: {

@@ -27,7 +27,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/locacoes',
     component: () => import('@/views/RentalsView.vue'),
-    meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.LOCADOR] }
+    meta: { requiresAuth: true }
   },
   {
     path: '/usuarios',
