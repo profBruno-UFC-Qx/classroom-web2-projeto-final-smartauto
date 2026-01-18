@@ -423,6 +423,7 @@ watch([() => formData.value.veiculo_id, () => formData.value.data_inicio, () => 
         <v-btn
           color="primary"
           prepend-icon="mdi-plus"
+          density="compact"
           @click="openCreateModal"
         >
           {{ isCliente ? 'Nova Solicitação' : 'Nova Locação' }}
