@@ -129,11 +129,51 @@ export const useRentalStore = defineStore('rentals', () => {
   }
 
   async function approveRental(id: number) {
-    return updateRental(id, { status: RentalStatus.APROVADA })
+    loading.value = true
+    error.value = null
+    try {
+      const response = await apiService.put<Locacao>(`/locacoes/${id}/aprovar`, {})
+
+      if (response.success && response.data) {
+        const index = rentals.value.findIndex(r => r.id === id)
+        if (index !== -1) {
+          rentals.value[index] = response.data
+        }
+        return response.data
+      } else {
+        error.value = response.message || response.detail || 'Erro ao aprovar locação'
+        return null
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erro ao aprovar locação'
+      return null
+    } finally {
+      loading.value = false
+    }
   }
 
   async function rejectRental(id: number) {
-    return updateRental(id, { status: RentalStatus.RECUSADA })
+    loading.value = true
+    error.value = null
+    try {
+      const response = await apiService.put<Locacao>(`/locacoes/${id}/recusar`, {})
+
+      if (response.success && response.data) {
+        const index = rentals.value.findIndex(r => r.id === id)
+        if (index !== -1) {
+          rentals.value[index] = response.data
+        }
+        return response.data
+      } else {
+        error.value = response.message || response.detail || 'Erro ao recusar locação'
+        return null
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erro ao recusar locação'
+      return null
+    } finally {
+      loading.value = false
+    }
   }
 
   return {

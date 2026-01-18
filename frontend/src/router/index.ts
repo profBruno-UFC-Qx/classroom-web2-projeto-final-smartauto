@@ -6,7 +6,7 @@ import type { RouteRecordRaw } from 'vue-router'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    component: () => import('@/views/HomeView.vue'),
+    component: () => import('@/views/WelcomeView.vue'),
     meta: { requiresAuth: false }
   },
   {
@@ -22,12 +22,12 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/veiculos',
     component: () => import('@/views/VehiclesView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: false }
   },
   {
     path: '/locacoes',
     component: () => import('@/views/RentalsView.vue'),
-    meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.LOCADOR] }
+    meta: { requiresAuth: true }
   },
   {
     path: '/usuarios',
@@ -36,7 +36,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/:pathMatch(.*)*',
-    component: () => import('@/views/HomeView.vue')
+    component: () => import('@/views/WelcomeView.vue')
   }
 ]
 

@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import * as dotenv from "dotenv";
 import { getConnection } from "../database/database";
 import { Usuario, Role } from "../models/Usuario";
-import { generateToken } from "../middleware/auth";
+import { generateToken, requireAuth } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 import { z } from "zod";
 
@@ -136,6 +136,22 @@ router.post("/login", validate({ body: UserLoginSchema }), async (req: Request, 
     });
   } catch (error) {
     res.status(500).json({ error: "Erro ao realizar login" });
+  }
+});
+
+// GET /auth/me - Retorna os dados do usuário autenticado
+router.get("/me", requireAuth, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Usuário não autenticado" });
+    }
+
+    const { senha: _, ...userWithoutPassword } = req.user;
+    res.json({
+      user: userWithoutPassword,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao obter dados do usuário" });
   }
 });
 

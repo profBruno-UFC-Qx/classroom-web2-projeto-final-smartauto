@@ -28,8 +28,8 @@ export class Locacao {
   @Column()
   cliente_id!: number;
 
-  @Column()
-  locador_id!: number;
+  @Column({ nullable: true })
+  locador_id!: number | null;
 
   @Column()
   veiculo_id!: number;
@@ -41,9 +41,9 @@ export class Locacao {
   })
   status!: StatusLocacao;
 
-  @ManyToOne(() => Usuario, (usuario) => usuario.locacoesComoLocador)
+  @ManyToOne(() => Usuario, (usuario) => usuario.locacoesComoLocador, { nullable: true })
   @JoinColumn({ name: "locador_id" })
-  locador!: Usuario;
+  locador!: Usuario | null;
 
   @ManyToOne(() => Usuario, (usuario) => usuario.locacoesComoCliente)
   @JoinColumn({ name: "cliente_id" })
