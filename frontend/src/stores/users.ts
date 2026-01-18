@@ -28,7 +28,7 @@ export const useUserStore = defineStore('users', () => {
   const locadorUsers = computed(() => users.value.filter(u => u.role === 'locador'))
   const clienteUsers = computed(() => users.value.filter(u => u.role === 'cliente'))
 
-  function buildQuery(pageNum: number, role?: UserRole | 'all') {
+  function buildQuery(pageNum: number, role?: UserRole | 'all', nome?: string | null) {
     const limit = itemsPerPage.value
     const offset = limit > 0 ? (pageNum - 1) * limit : 0
     const params = new URLSearchParams()
@@ -37,14 +37,17 @@ export const useUserStore = defineStore('users', () => {
     if (role && role !== 'all') {
       params.set('funcao', role)
     }
+    if (nome && nome.trim()) {
+      params.set('nome', nome.trim())
+    }
     return params.toString()
   }
 
-  async function fetchUsers(pageNum = 1, role?: UserRole | 'all') {
+  async function fetchUsers(pageNum = 1, role?: UserRole | 'all', nome?: string | null) {
     loading.value = true
     error.value = null
     try {
-      const query = buildQuery(pageNum, role)
+      const query = buildQuery(pageNum, role, nome)
       const response = (await apiService.get<User[]>(`/usuarios?${query}`)) as UsersApiResponse
 
       if (response.success && response.data) {

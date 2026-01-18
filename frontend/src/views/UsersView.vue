@@ -4,6 +4,7 @@ import { useUserStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import { UserRole } from '@/types'
 import type { User, CreateUserData, UpdateUserData } from '@/types'
+import { debounce } from '@/utils/debounce'
 
 const userStore = useUserStore()
 const authStore = useAuthStore()
@@ -11,6 +12,7 @@ const authStore = useAuthStore()
 const showModal = ref(false)
 const editingUser = ref<User | null>(null)
 const roleFilter = ref<UserRole | 'all'>('all')
+const nomeFilter = ref('')
 
 // Notificações
 const notification = ref({
@@ -37,12 +39,21 @@ const canManage = computed(() => authStore.isAdmin)
 // Lista já vem paginada/filtrada do backend
 const filteredUsers = computed(() => userStore.users)
 
-onMounted(async () => {
-  await userStore.fetchUsers(1, roleFilter.value)
+const applyFilters = debounce(async () => {
+  userStore.currentPage = 1
+  await userStore.fetchUsers(1, roleFilter.value, nomeFilter.value || null)
+}, 500)
+
+watch(roleFilter, () => {
+  applyFilters()
 })
 
-watch(roleFilter, async (val) => {
-  await userStore.fetchUsers(1, val)
+watch(nomeFilter, () => {
+  applyFilters()
+})
+
+onMounted(async () => {
+  await userStore.fetchUsers(1, roleFilter.value, nomeFilter.value || null)
 })
 
 function openCreateModal() {
@@ -114,22 +125,24 @@ async function handleSubmit() {
   }
 
   if (editingUser.value && editingUser.value.id) {
-    await userStore.updateUser(editingUser.value.id, submitData as UpdateUserData)
-    if (!userStore.error) {
-      showNotification('Usuário atualizado com sucesso!', 'success')
-      closeModal()
+      await userStore.updateUser(editingUser.value.id, submitData as UpdateUserData)
+      if (!userStore.error) {
+        showNotification('Usuário atualizado com sucesso!', 'success')
+        closeModal()
+        await userStore.fetchUsers(userStore.currentPage, roleFilter.value, nomeFilter.value || null)
+      } else {
+        showNotification(userStore.error, 'error')
+      }
     } else {
-      showNotification(userStore.error, 'error')
+      await userStore.createUser(submitData as CreateUserData)
+      if (!userStore.error) {
+        showNotification('Usuário criado com sucesso!', 'success')
+        closeModal()
+        await userStore.fetchUsers(userStore.currentPage, roleFilter.value, nomeFilter.value || null)
+      } else {
+        showNotification(userStore.error, 'error')
+      }
     }
-  } else {
-    await userStore.createUser(submitData as CreateUserData)
-    if (!userStore.error) {
-      showNotification('Usuário criado com sucesso!', 'success')
-      closeModal()
-    } else {
-      showNotification(userStore.error, 'error')
-    }
-  }
 }
 
 async function deleteUser(id: number) {
@@ -162,7 +175,14 @@ function getRoleColor(role: UserRole): string {
 }
 
 function changePage(page: number) {
-  userStore.fetchUsers(page, roleFilter.value)
+  userStore.fetchUsers(page, roleFilter.value, nomeFilter.value || null)
+}
+
+function clearFilters() {
+  nomeFilter.value = ''
+  roleFilter.value = 'all'
+  userStore.currentPage = 1
+  userStore.fetchUsers(1, 'all', null)
 }
 </script>
 
@@ -177,7 +197,18 @@ function changePage(page: number) {
 
     <!-- Filtros e Ações -->
     <v-row class="mb-4 align-center">
-      <v-col cols="12" sm="6" md="8">
+      <v-col cols="12" md="4">
+        <v-text-field
+          v-model="nomeFilter"
+          label="Buscar por nome"
+          prepend-inner-icon="mdi-magnify"
+          variant="outlined"
+          density="compact"
+          clearable
+          placeholder="Digite o nome do usuário"
+        ></v-text-field>
+      </v-col>
+      <v-col cols="12" md="4">
         <v-select
           v-model="roleFilter"
           :items="[
@@ -189,13 +220,24 @@ function changePage(page: number) {
           label="Filtrar por papel"
           variant="outlined"
           density="compact"
+          clearable
         ></v-select>
       </v-col>
-      <v-col cols="12" sm="6" md="4" class="text-right">
+      <v-col cols="12" md="4" class="d-flex justify-end align-center ga-2">
+        <v-btn
+          v-if="nomeFilter || roleFilter !== 'all'"
+          variant="outlined"
+          prepend-icon="mdi-close"
+          density="compact"
+          @click="clearFilters"
+        >
+          Limpar
+        </v-btn>
         <v-btn
           v-if="canManage"
           color="primary"
           prepend-icon="mdi-plus"
+          density="compact"
           @click="openCreateModal"
         >
           Novo Usuário
@@ -319,7 +361,7 @@ function changePage(page: number) {
     </v-row>
 
     <!-- Vazio -->
-    <v-row v-if="userStore.users.length === 0">
+    <v-row v-if="filteredUsers.length === 0 && !userStore.loading">
       <v-col cols="12" class="text-center py-12">
         <v-icon size="48" class="text-disabled mb-4">mdi-account-off</v-icon>
         <p class="text-body1 text-disabled">Nenhum usuário encontrado</p>
