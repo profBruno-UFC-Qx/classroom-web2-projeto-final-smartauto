@@ -1,0 +1,1011 @@
+{
+  "info": {
+    "name": "SmartAuto API",
+    "description": "API do sistema SmartAuto - Locação de Veículos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "smartauto-api"
+  },
+  "item": [
+    {
+      "name": "Root",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Verifica se a API está funcionando"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Autenticação",
+      "item": [
+        {
+          "name": "Registrar Usuário (CLIENTE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva\",\n  \"usuario\": \"joao.silva\",\n  \"senha\": \"senha123\",\n  \"telefone\": \"(11) 99999-9999\",\n  \"email\": \"joao@example.com\",\n  \"uf\": \"SP\",\n  \"cidade\": \"São Paulo\",\n  \"logradouro\": \"Rua das Flores\",\n  \"numero\": 123\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Registra um novo usuário com role CLIENTE (padrão). Retorna token JWT e dados do usuário (sem senha).\n\n**Nota**: Sem o parâmetro `api_key`, o usuário é criado como CLIENTE.\n\n**Validação**: Os campos são validados automaticamente usando Zod. Campos opcionais: `telefone`, `uf`, `cidade`, `logradouro`, `numero`. Se a validação falhar, retorna erro 400 com detalhes."
+          }
+        },
+        {
+          "name": "Registrar Usuário (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Admin User\",\n  \"usuario\": \"admin.user\",\n  \"senha\": \"admin123\",\n  \"telefone\": \"(11) 88888-8888\",\n  \"email\": \"admin@example.com\",\n  \"uf\": \"SP\",\n  \"cidade\": \"São Paulo\",\n  \"logradouro\": \"Av. Admin\",\n  \"numero\": 999,\n  \"api_key\": \"{{admin_api_key}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Registra um novo usuário com role ADMIN usando api_key válida. Retorna token JWT e dados do usuário (sem senha).\n\n**Nota**: O `api_key` deve corresponder ao valor configurado em `ADMIN_API_KEY` no arquivo `.env`. Se a chave for inválida, retorna erro 403."
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario\": \"joao.silva\",\n  \"senha\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Realiza login e retorna token JWT. Use o token no header 'Authorization: Bearer <token>' para acessar rotas protegidas.\n\n**Validação**: Os campos `usuario` (mínimo 3 caracteres) e `senha` (mínimo 8 caracteres) são validados automaticamente usando Zod. Se a validação falhar, retorna erro 400 com detalhes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categorias",
+      "item": [
+        {
+          "name": "Listar Categorias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias?offset=0&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["categorias"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Número de registros a pular"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Número máximo de registros (máx: 100)"
+                }
+              ]
+            },
+            "description": "Lista todas as categorias com paginação"
+          }
+        },
+        {
+          "name": "Buscar Categoria por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias/:categoria_id",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", ":categoria_id"],
+              "variable": [
+                {
+                  "key": "categoria_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Busca uma categoria específica pelo ID"
+          }
+        },
+        {
+          "name": "Criar Categoria",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Locação\",\n  \"descricao\": \"Categoria para veículos disponíveis para locação\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categorias",
+              "host": ["{{base_url}}"],
+              "path": ["categorias"]
+            },
+            "description": "Cria uma nova categoria"
+          }
+        },
+        {
+          "name": "Atualizar Categoria",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Locação\",\n  \"descricao\": \"Descrição atualizada\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categorias/:categoria_id",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", ":categoria_id"],
+              "variable": [
+                {
+                  "key": "categoria_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualiza uma categoria existente"
+          }
+        },
+        {
+          "name": "Deletar Categoria",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/categorias/:categoria_id",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", ":categoria_id"],
+              "variable": [
+                {
+                  "key": "categoria_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Remove uma categoria"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuários",
+      "item": [
+        {
+          "name": "Listar Usuários",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuarios?offset=0&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lista todos os usuários com paginação (requer autenticação: LOCADOR ou ADMIN)"
+          }
+        },
+        {
+          "name": "Buscar Meus Dados",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuarios/me",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "me"]
+            },
+            "description": "Retorna os dados do usuário logado (sem senha)"
+          }
+        },
+        {
+          "name": "Atualizar Meus Dados",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva Atualizado\",\n  \"telefone\": \"(11) 88888-8888\",\n  \"email\": \"joao.novo@example.com\",\n  \"uf\": \"RJ\",\n  \"cidade\": \"Rio de Janeiro\",\n  \"logradouro\": \"Av. Atlântica\",\n  \"numero\": 456\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/me",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "me"]
+            },
+            "description": "Atualiza os dados do usuário logado (não permite alterar role)"
+          }
+        },
+        {
+          "name": "Atualizar Minha Senha",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senha\": \"novaSenha123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/me/senha",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "me", "senha"]
+            },
+            "description": "Atualiza a senha do usuário logado. A senha deve ter no mínimo 8 caracteres."
+          }
+        },
+        {
+          "name": "Buscar Usuário por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuarios/:id",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Busca um usuário específico pelo ID (requer autenticação: LOCADOR ou ADMIN)"
+          }
+        },
+        {
+          "name": "Buscar Usuário por Nome",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuarios/nome/:nome",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "nome", ":nome"],
+              "variable": [
+                {
+                  "key": "nome",
+                  "value": "João"
+                }
+              ]
+            },
+            "description": "Busca usuários pelo nome (busca parcial)"
+          }
+        },
+        {
+          "name": "Buscar Usuário por Role",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuarios/role/:role",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", "role", ":role"],
+              "variable": [
+                {
+                  "key": "role",
+                  "value": "cliente",
+                  "description": "cliente, locador ou admin"
+                }
+              ]
+            },
+            "description": "Busca usuários por role (requer autenticação: LOCADOR ou ADMIN)"
+          }
+        },
+        {
+          "name": "Criar Usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role ADMIN)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva\",\n  \"usuario\": \"joao.silva\",\n  \"senha\": \"senha123\",\n  \"telefone\": \"(11) 99999-9999\",\n  \"email\": \"joao@example.com\",\n  \"uf\": \"SP\",\n  \"cidade\": \"São Paulo\",\n  \"logradouro\": \"Rua das Flores\",\n  \"numero\": 123,\n  \"role\": \"cliente\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios"]
+            },
+            "description": "Cria um novo usuário (requer autenticação: ADMIN)"
+          }
+        },
+        {
+          "name": "Atualizar Usuário",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role ADMIN)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva Atualizado\",\n  \"usuario\": \"joao.silva\",\n  \"senha\": \"novaSenha123\",\n  \"telefone\": \"(11) 88888-8888\",\n  \"email\": \"joao.novo@example.com\",\n  \"uf\": \"RJ\",\n  \"cidade\": \"Rio de Janeiro\",\n  \"logradouro\": \"Av. Atlântica\",\n  \"numero\": 456,\n  \"role\": \"locador\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/usuarios/:id",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualiza um usuário existente (requer autenticação: ADMIN)"
+          }
+        },
+        {
+          "name": "Deletar Usuário",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuarios/:id",
+              "host": ["{{base_url}}"],
+              "path": ["usuarios", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Remove um usuário (requer autenticação: ADMIN)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Veículos",
+      "item": [
+        {
+          "name": "Listar Veículos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/veiculos?offset=0&limit=10&disponiveis=true",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Número de registros a pular"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Número máximo de registros (máx: 100)"
+                },
+                {
+                  "key": "disponiveis",
+                  "value": "true",
+                  "description": "Filtrar por disponibilidade (padrão: true)"
+                },
+                {
+                  "key": "categoria",
+                  "value": "",
+                  "description": "Filtrar por nome da categoria",
+                  "disabled": true
+                },
+                {
+                  "key": "min_preco",
+                  "value": "",
+                  "description": "Preço mínimo",
+                  "disabled": true
+                },
+                {
+                  "key": "max_preco",
+                  "value": "",
+                  "description": "Preço máximo",
+                  "disabled": true
+                },
+                {
+                  "key": "ano",
+                  "value": "",
+                  "description": "Filtrar por ano",
+                  "disabled": true
+                },
+                {
+                  "key": "modelo",
+                  "value": "",
+                  "description": "Filtrar por modelo",
+                  "disabled": true
+                },
+                {
+                  "key": "marca",
+                  "value": "",
+                  "description": "Filtrar por marca",
+                  "disabled": true
+                },
+                {
+                  "key": "order_by",
+                  "value": "id",
+                  "description": "Campo para ordenação (id, marca, modelo, ano, valor_diaria, cor). Padrão: id"
+                },
+                {
+                  "key": "order",
+                  "value": "asc",
+                  "description": "Direção da ordenação (asc, desc). Padrão: asc"
+                }
+              ]
+            },
+            "description": "Lista todos os veículos com categorias (sempre retorna categorias). Todos os query params são opcionais e podem ser combinados.\n\n**Parâmetros de Ordenação:**\n- `order_by`: Campo para ordenação (id, marca, modelo, ano, valor_diaria, cor). Padrão: id\n- `order`: Direção da ordenação (asc, desc). Padrão: asc\n\nExemplos:\n- GET /veiculos?categoria=Locacao&disponiveis=true\n- GET /veiculos?ano=2023&marca=Honda\n- GET /veiculos?min_preco=50000&max_preco=150000\n- GET /veiculos?modelo=Civic&disponiveis=true\n- GET /veiculos?order_by=valor_diaria&order=asc - Ordenado por preço (menor para maior)\n- GET /veiculos?order_by=ano&order=desc - Ordenado por ano (mais novos primeiro)"
+          }
+        },
+        {
+          "name": "Buscar Veículo por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/veiculos/:veiculo_id",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", ":veiculo_id"],
+              "variable": [
+                {
+                  "key": "veiculo_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Busca um veículo específico pelo ID (retorna com categorias)"
+          }
+        },
+        {
+          "name": "Criar Veículo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marca\": \"Honda\",\n  \"modelo\": \"Civic\",\n  \"ano\": 2023,\n  \"preco\": 120000.00,\n  \"cor\": \"Branco\",\n  \"disponivel\": true,\n  \"valor_diaria\": 150.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/veiculos",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos"]
+            },
+            "description": "Cria um novo veículo"
+          }
+        },
+        {
+          "name": "Atualizar Veículo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marca\": \"Honda\",\n  \"modelo\": \"Civic\",\n  \"ano\": 2026,\n  \"preco\": 125000.00,\n  \"cor\": \"Preto\",\n  \"disponivel\": true,\n  \"valor_diaria\": 180.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/veiculos/:veiculo_id",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", ":veiculo_id"],
+              "variable": [
+                {
+                  "key": "veiculo_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualiza um veículo existente"
+          }
+        },
+        {
+          "name": "Deletar Veículo",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/veiculos/:veiculo_id",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", ":veiculo_id"],
+              "variable": [
+                {
+                  "key": "veiculo_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Remove um veículo"
+          }
+        },
+        {
+          "name": "Associar Categoria ao Veículo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome_categoria\": \"Locação\",\n  \"descricao\": \"Categoria para veículos disponíveis para locação\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/veiculos/categoria/:veiculo_id",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", "categoria", ":veiculo_id"],
+              "variable": [
+                {
+                  "key": "veiculo_id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Associa uma categoria a um veículo"
+          }
+        },
+        {
+          "name": "Remover Associação de Categoria do Veículo",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/veiculos/categoria?veiculo=1&categoria=2",
+              "host": ["{{base_url}}"],
+              "path": ["veiculos", "categoria"],
+              "query": [
+                {
+                  "key": "veiculo",
+                  "value": "1",
+                  "description": "ID do veículo"
+                },
+                {
+                  "key": "categoria",
+                  "value": "2",
+                  "description": "ID da categoria"
+                }
+              ]
+            },
+            "description": "Remove a associação entre uma categoria e um veículo. Retorna erro 404 se o veículo ou a associação não existir."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Locações",
+      "item": [
+        {
+          "name": "Listar Locações",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/locacoes?offset=0&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes"],
+              "query": [
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Número de registros a pular"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Número máximo de registros (máx: 100)"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filtrar por status (PENDENTE, APROVADA, RECUSADA)",
+                  "disabled": true
+                },
+                {
+                  "key": "veiculo_id",
+                  "value": "",
+                  "description": "Filtrar por ID do veículo",
+                  "disabled": true
+                },
+                {
+                  "key": "cliente_id",
+                  "value": "",
+                  "description": "Filtrar por ID do cliente",
+                  "disabled": true
+                },
+                {
+                  "key": "locador_id",
+                  "value": "",
+                  "description": "Filtrar por ID do locador",
+                  "disabled": true
+                },
+                {
+                  "key": "data_inicio",
+                  "value": "",
+                  "description": "Filtrar por data de início (formato ISO date, >=)",
+                  "disabled": true
+                },
+                {
+                  "key": "data_fim",
+                  "value": "",
+                  "description": "Filtrar por data de fim (formato ISO date)",
+                  "disabled": true
+                },
+                {
+                  "key": "order_by",
+                  "value": "data_inicio",
+                  "description": "Campo para ordenação (id, data_inicio, data_fim, status). Padrão: data_inicio"
+                },
+                {
+                  "key": "order",
+                  "value": "asc",
+                  "description": "Direção da ordenação (asc, desc). Padrão: asc"
+                }
+              ]
+            },
+            "description": "Lista todas as locações com paginação (requer autenticação).\n\n**Filtros Opcionais:** Todos os query params são opcionais e podem ser combinados.\n- `status`: Filtrar por status (PENDENTE, APROVADA, RECUSADA)\n- `veiculo_id`: Filtrar por ID do veículo\n- `cliente_id`: Filtrar por ID do cliente\n- `locador_id`: Filtrar por ID do locador\n- `data_inicio`: Filtrar por data de início (>=)\n- `data_fim`: Filtrar por data de fim\n\n**Parâmetros de Ordenação:**\n- `order_by`: Campo para ordenação (id, data_inicio, data_fim, status). Padrão: data_inicio\n- `order`: Direção da ordenação (asc, desc). Padrão: asc\n\n**Comportamento por Role:**\n- **ADMIN**: Vê todas as locações\n- **LOCADOR**: Vê apenas suas próprias locações (como locador)\n- **CLIENTE**: Vê apenas suas próprias locações (como cliente)\n\n**Nota**: A rota `/locacoes/me` foi removida. Use `/locacoes` que já filtra automaticamente por role do usuário.\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas por questões de segurança.\n\nExemplos:\n- GET /locacoes?order_by=data_inicio&order=desc - Mais recentes primeiro\n- GET /locacoes?status=PENDENTE&order_by=status&order=asc - Pendentes ordenadas por status"
+          }
+        },
+        {
+          "name": "Buscar Locação por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/locacoes/:id",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Busca uma locação específica pelo ID (requer autenticação).\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas por questões de segurança."
+          }
+        },
+        {
+          "name": "Criar Locação",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data_inicio\": \"2026-01-07\",\n  \"data_fim\": \"2026-01-14\",\n  \"cliente_id\": 1,\n  \"locador_id\": 1,\n  \"veiculo_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/locacoes",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes"]
+            },
+            "description": "Cria uma nova locação com status PENDENTE (requer autenticação). O valor_total é calculado automaticamente baseado na valor_diaria do veículo e duração.\n\n**Validação**: Os campos são validados automaticamente usando Zod. Se a validação falhar, retorna erro 400 com detalhes."
+          }
+        },
+        {
+          "name": "Atualizar Locação",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data_inicio\": \"2026-01-08\",\n  \"data_fim\": \"2026-01-15\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/locacoes/:id",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Atualiza uma locação existente (requer autenticação: LOCADOR ou ADMIN). O valor_total é recalculado automaticamente.\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas.\n\n**Validação**: Os campos são validados automaticamente usando Zod. Se a validação falhar, retorna erro 400 com detalhes."
+          }
+        },
+        {
+          "name": "Aprovar Locação",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/locacoes/:id/aprovar",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes", ":id", "aprovar"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Aprova uma locação pendente (requer autenticação: LOCADOR ou ADMIN). Muda status para APROVADA e marca veículo como indisponível.\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas."
+          }
+        },
+        {
+          "name": "Recusar Locação",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/locacoes/:id/recusar",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes", ":id", "recusar"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Recusa uma locação pendente (requer autenticação: LOCADOR ou ADMIN). Muda status para RECUSADA. Veículo permanece disponível.\n\n**Nota**: Os campos `usuario` e `senha` são removidos automaticamente dos objetos `locador` e `cliente` nas respostas."
+          }
+        },
+        {
+          "name": "Deletar Locação",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Token JWT (requer role LOCADOR ou ADMIN)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/locacoes/:id",
+              "host": ["{{base_url}}"],
+              "path": ["locacoes", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Remove uma locação (requer autenticação: LOCADOR ou ADMIN)"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "Token JWT obtido via /auth/login ou /auth/register"
+    },
+    {
+      "key": "admin_api_key",
+      "value": "",
+      "type": "string",
+      "description": "API key para criar usuários ADMIN (deve corresponder ao ADMIN_API_KEY do .env)"
+    }
+  ]
+}
+
+
+
+
+
+
