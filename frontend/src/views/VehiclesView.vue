@@ -1,15 +1,27 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useVehicleStore } from '@/stores/vehicles'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useVehicleStore, type VehicleFilters } from '@/stores/vehicles'
 import { useAuthStore } from '@/stores/auth'
 import type { Veiculo } from '@/types'
+import { debounce } from '@/utils/debounce'
 
 const vehicleStore = useVehicleStore()
 const authStore = useAuthStore()
 
 const showModal = ref(false)
 const editingVehicle = ref<Veiculo | null>(null)
-const searchQuery = ref('')
+const showFilters = ref(false)
+
+const filters = ref({
+  marca: '',
+  modelo: '',
+  ano: '',
+  minPreco: '',
+  maxPreco: '',
+  categoria: '',
+  orderBy: 'id' as 'id' | 'marca' | 'modelo' | 'ano' | 'valor_diaria' | 'cor',
+  order: 'asc' as 'asc' | 'desc'
+})
 
 const formData = ref({
   marca: '',
@@ -22,17 +34,56 @@ const formData = ref({
 
 const canManage = computed(() => authStore.isAdmin || authStore.isLocador)
 
-const filteredVehicles = computed(() => {
-  const query = searchQuery.value.toLowerCase()
-  return vehicleStore.vehicles.filter(v =>
-    v.marca.toLowerCase().includes(query) ||
-    v.modelo.toLowerCase().includes(query) ||
-    v.cor?.toLowerCase().includes(query)
-  )
+const applyFilters = debounce(async () => {
+  const filterParams: VehicleFilters = {
+    disponiveis: true,
+    orderBy: filters.value.orderBy,
+    order: filters.value.order
+  }
+
+  if (filters.value.marca) filterParams.marca = filters.value.marca
+  if (filters.value.modelo) filterParams.modelo = filters.value.modelo
+  if (filters.value.ano) filterParams.ano = parseInt(filters.value.ano)
+  if (filters.value.minPreco) filterParams.minPreco = parseFloat(filters.value.minPreco)
+  if (filters.value.maxPreco) filterParams.maxPreco = parseFloat(filters.value.maxPreco)
+  if (filters.value.categoria) filterParams.categoria = filters.value.categoria
+
+  vehicleStore.setFilters(filterParams)
+  await vehicleStore.fetchVehicles(vehicleStore.currentPage, filterParams)
+}, 500)
+
+watch([() => filters.value.marca, () => filters.value.modelo], () => {
+  vehicleStore.currentPage = 1
+  applyFilters()
 })
 
+function handleFilterChange() {
+  vehicleStore.currentPage = 1
+  applyFilters()
+}
+
+async function clearFilters() {
+  filters.value = {
+    marca: '',
+    modelo: '',
+    ano: '',
+    minPreco: '',
+    maxPreco: '',
+    categoria: '',
+    orderBy: 'id',
+    order: 'asc'
+  }
+  vehicleStore.clearFilters()
+  await vehicleStore.fetchVehicles(1)
+}
+
+async function changePage(page: number) {
+  await vehicleStore.fetchVehicles(page, vehicleStore.filters)
+}
+
 onMounted(async () => {
-  await vehicleStore.fetchVehicles()
+  await vehicleStore.fetchCategories()
+  await vehicleStore.fetchVehicles(1)
 })
 
 function openCreateModal() {
@@ -80,12 +131,14 @@ async function handleSubmit() {
 
   if (!vehicleStore.error) {
     closeModal()
+    await vehicleStore.fetchVehicles(vehicleStore.currentPage, vehicleStore.filters)
   }
 }
 
 async function deleteVehicle(id: number) {
   if (confirm('Tem certeza que deseja deletar este veículo?')) {
     await vehicleStore.deleteVehicle(id)
+    await vehicleStore.fetchVehicles(vehicleStore.currentPage, vehicleStore.filters)
   }
 }
 </script>
@@ -99,30 +152,146 @@ async function deleteVehicle(id: number) {
       </v-col>
     </v-row>
 
-    <!-- Filtros e Ações -->
     <v-row class="mb-4 align-center">
-      <v-col cols="12" sm="6" md="8">
+      <v-col cols="12" sm="6" md="4">
         <v-text-field
-          v-model="searchQuery"
-          placeholder="Buscar por marca, modelo ou cor..."
+          v-model="filters.marca"
+          placeholder="Buscar por marca..."
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
           density="compact"
+          clearable
         ></v-text-field>
       </v-col>
-      <v-col cols="12" sm="6" md="4" class="text-right">
-        <v-btn
-          v-if="canManage"
-          color="primary"
-          prepend-icon="mdi-plus"
-          @click="openCreateModal"
-        >
-          Novo Veículo
-        </v-btn>
+      <v-col cols="12" sm="6" md="4">
+        <v-text-field
+          v-model="filters.modelo"
+          placeholder="Buscar por modelo..."
+          prepend-inner-icon="mdi-magnify"
+          variant="outlined"
+          density="compact"
+          clearable
+        ></v-text-field>
+      </v-col>
+      <v-col cols="12" sm="6" md="4">
+        <div class="d-flex align-center" style="gap: 12px;">
+          <v-btn
+            color="secondary"
+            variant="outlined"
+            prepend-icon="mdi-filter"
+            height="40"
+            @click="showFilters = !showFilters"
+          >
+            Filtros
+          </v-btn>
+          <v-btn
+            v-if="canManage"
+            color="primary"
+            prepend-icon="mdi-plus"
+            height="40"
+            @click="openCreateModal"
+          >
+            Novo Veículo
+          </v-btn>
+        </div>
       </v-col>
     </v-row>
 
-    <!-- Mensagens de Erro/Status -->
+    <v-expand-transition>
+      <v-card v-if="showFilters" class="mb-4" variant="outlined">
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" md="3">
+              <v-text-field
+                v-model="filters.ano"
+                label="Ano"
+                type="number"
+                variant="outlined"
+                density="compact"
+                clearable
+                @update:model-value="handleFilterChange"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-text-field
+                v-model="filters.minPreco"
+                label="Preço Mínimo (R$)"
+                type="number"
+                variant="outlined"
+                density="compact"
+                clearable
+                @update:model-value="handleFilterChange"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-text-field
+                v-model="filters.maxPreco"
+                label="Preço Máximo (R$)"
+                type="number"
+                variant="outlined"
+                density="compact"
+                clearable
+                @update:model-value="handleFilterChange"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-select
+                v-model="filters.categoria"
+                :items="vehicleStore.categories"
+                item-title="nome"
+                item-value="nome"
+                label="Categoria"
+                variant="outlined"
+                density="compact"
+                clearable
+                @update:model-value="handleFilterChange"
+              ></v-select>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-select
+                v-model="filters.orderBy"
+                :items="[
+                  { title: 'ID', value: 'id' },
+                  { title: 'Marca', value: 'marca' },
+                  { title: 'Modelo', value: 'modelo' },
+                  { title: 'Ano', value: 'ano' },
+                  { title: 'Preço', value: 'valor_diaria' },
+                  { title: 'Cor', value: 'cor' }
+                ]"
+                label="Ordenar por"
+                variant="outlined"
+                density="compact"
+                @update:model-value="handleFilterChange"
+              ></v-select>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-select
+                v-model="filters.order"
+                :items="[
+                  { title: 'Crescente', value: 'asc' },
+                  { title: 'Decrescente', value: 'desc' }
+                ]"
+                label="Ordem"
+                variant="outlined"
+                density="compact"
+                @update:model-value="handleFilterChange"
+              ></v-select>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-btn
+                color="error"
+                variant="outlined"
+                prepend-icon="mdi-close"
+                @click="clearFilters"
+              >
+                Limpar Filtros
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-card-text>
+      </v-card>
+    </v-expand-transition>
+
     <v-row v-if="vehicleStore.loading" class="mb-4">
       <v-col cols="12">
         <v-progress-linear indeterminate></v-progress-linear>
@@ -135,10 +304,9 @@ async function deleteVehicle(id: number) {
       </v-col>
     </v-row>
 
-    <!-- Lista de Veículos em Grid -->
-    <v-row v-if="filteredVehicles.length > 0">
+    <v-row v-if="vehicleStore.vehicles.length > 0">
       <v-col
-        v-for="vehicle in filteredVehicles"
+        v-for="vehicle in vehicleStore.vehicles"
         :key="vehicle.id"
         cols="12"
         sm="6"
@@ -218,17 +386,33 @@ async function deleteVehicle(id: number) {
       </v-col>
     </v-row>
 
-    <!-- Vazio -->
-    <v-row v-else>
-      <v-col cols="12" class="text-center py-12">
-        <v-icon size="48" class="text-disabled mb-4">mdi-car-off</v-icon>
-        <p class="text-body1 text-disabled">
-          {{ searchQuery ? 'Nenhum veículo encontrado' : 'Nenhum veículo disponível' }}
+    <v-row v-if="vehicleStore.pagination && vehicleStore.pagination.totalPages > 1" class="mt-4">
+      <v-col cols="12" class="d-flex justify-center">
+        <v-pagination
+          v-model="vehicleStore.currentPage"
+          :length="vehicleStore.pagination.totalPages"
+          :total-visible="7"
+          @update:model-value="changePage"
+        ></v-pagination>
+      </v-col>
+      <v-col cols="12" class="text-center">
+        <p class="text-body2 text-disabled">
+          Mostrando {{ (vehicleStore.currentPage - 1) * vehicleStore.itemsPerPage + 1 }} -
+          {{ Math.min(vehicleStore.currentPage * vehicleStore.itemsPerPage, vehicleStore.pagination.total) }}
+          de {{ vehicleStore.pagination.total }} veículos
         </p>
       </v-col>
     </v-row>
 
-    <!-- Modal de Criação/Edição -->
+    <v-row v-else-if="!vehicleStore.loading && vehicleStore.vehicles.length === 0">
+      <v-col cols="12" class="text-center py-12">
+        <v-icon size="48" class="text-disabled mb-4">mdi-car-off</v-icon>
+        <p class="text-body1 text-disabled">
+          Nenhum veículo encontrado
+        </p>
+      </v-col>
+    </v-row>
+
     <v-dialog v-model="showModal" max-width="500">
       <v-card>
         <v-card-title>

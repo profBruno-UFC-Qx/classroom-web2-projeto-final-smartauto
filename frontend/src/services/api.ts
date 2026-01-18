@@ -1,11 +1,21 @@
-import type { ApiResponse, PaginatedResponse } from '@/types'
+import type { ApiResponse } from '@/types'
+
+interface ApiResponseWithPagination<T> extends ApiResponse<T> {
+  pagination?: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}
 
 export class ApiService {
   private baseURL: string = 'http://localhost:3000'
   private token: string | null = null
 
   constructor() {
-    // Try to load token from localStorage on initialization
     this.token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
   }
 
@@ -41,22 +51,23 @@ export class ApiService {
         body: body ? JSON.stringify(body) : undefined
       })
 
-      // Parse response once
       const json = await response.json().catch(() => undefined)
 
-      // Normalize response shape to ApiResponse
       if (json && typeof json === 'object' && ('success' in json || 'detail' in json || 'error' in json)) {
-        // Already in ApiResponse format
-        return {
-          success: response.ok && (json as any)?.success !== false,
-          data: (json as any)?.data || json,
-          message: (json as any)?.message,
-          detail: (json as any)?.detail,
-          error: (json as any)?.error
+        const jsonObj = json as Record<string, unknown>
+        const result: ApiResponseWithPagination<T> = {
+          success: response.ok && (jsonObj.success as boolean | undefined) !== false,
+          data: (jsonObj.data as T | undefined) || (json as T),
+          message: jsonObj.message as string | undefined,
+          detail: jsonObj.detail as string | undefined,
+          error: jsonObj.error as string | undefined
         }
+        if (jsonObj.pagination && typeof jsonObj.pagination === 'object') {
+          result.pagination = jsonObj.pagination as ApiResponseWithPagination<T>['pagination']
+        }
+        return result
       }
 
-      // Wrap plain response data
       return {
         success: response.ok,
         data: json as T,

@@ -89,7 +89,7 @@ async function handleSubmit() {
   }
 
   const data = { ...formData.value }
-  
+
   // Se estamos editando e não alterou a senha, remove o campo
   let submitData: CreateUserData | UpdateUserData = data
   if (editingUser.value && !formData.value.senha) {
@@ -215,7 +215,7 @@ function getRoleColor(role: UserRole): string {
                 </v-chip>
               </td>
               <td>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2" style="gap: 12px;">
                   <v-btn
                     v-if="canManage"
                     variant="outlined"

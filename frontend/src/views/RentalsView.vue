@@ -104,12 +104,14 @@ async function handleSubmit() {
     // Na edição, enviar todos os dados (backend trata o status)
     await rentalStore.updateRental(editingRental.value.id, formData.value)
   } else {
-    // Na criação, enviar sem status e com locador_id vazio (backend trata automaticamente)
+    // Na criação: se for cliente, locador_id = 0; se for admin/locador, locador_id = usuário da sessão
+    const locadorId = isCliente.value ? 0 : (authStore.user?.id || 0)
+
     const createData: Omit<CreateRentalData, 'status'> & { status?: RentalStatus } = {
       data_inicio: formData.value.data_inicio,
       data_fim: formData.value.data_fim,
       cliente_id: formData.value.cliente_id,
-      locador_id: 0,
+      locador_id: locadorId,
       veiculo_id: formData.value.veiculo_id
     }
     await rentalStore.createRental(createData as CreateRentalData)
@@ -259,7 +261,7 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
                 </v-chip>
               </td>
               <td>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2" style="gap: 12px;">
                   <v-btn
                     v-if="canManageRentals && rental.status === RentalStatus.PENDENTE"
                     color="success"
@@ -299,7 +301,6 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
       </v-col>
     </v-row>
 
-    <!-- Vazio -->
     <v-row v-else>
       <v-col cols="12" class="text-center py-12">
         <v-icon size="48" class="text-disabled mb-4">mdi-calendar-off</v-icon>
@@ -307,7 +308,6 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
       </v-col>
     </v-row>
 
-    <!-- Modal de Criação/Edição -->
     <v-dialog v-model="showModal" max-width="600">
       <v-card>
         <v-card-title>
@@ -373,7 +373,6 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
               class="mb-3"
             ></v-text-field>
 
-            <!-- Resumo -->
             <v-card v-if="formData.veiculo_id && formData.data_inicio && formData.data_fim" class="mb-3" variant="outlined">
               <v-card-text>
                 <div class="text-body2 mb-1">

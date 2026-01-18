@@ -1,7 +1,28 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { apiService } from '@/services/api'
-import type { Veiculo, Categoria, CreateVehicleData, UpdateVehicleData } from '@/types'
+import type { Veiculo, Categoria, CreateVehicleData, UpdateVehicleData, ApiResponse } from '@/types'
+
+export interface VehicleFilters {
+  marca?: string | null
+  modelo?: string | null
+  ano?: number | null
+  minPreco?: number | null
+  maxPreco?: number | null
+  categoria?: string | null
+  disponiveis?: boolean
+  orderBy?: 'id' | 'marca' | 'modelo' | 'ano' | 'valor_diaria' | 'cor'
+  order?: 'asc' | 'desc'
+}
+
+export interface PaginationInfo {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
+}
 
 export const useVehicleStore = defineStore('vehicles', () => {
   const vehicles = ref<Veiculo[]>([])
@@ -9,29 +30,66 @@ export const useVehicleStore = defineStore('vehicles', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const currentPage = ref(1)
-  const itemsPerPage = ref(10)
+  const itemsPerPage = ref(12)
+  const pagination = ref<PaginationInfo | null>(null)
+  const filters = ref<VehicleFilters>({
+    disponiveis: true,
+    orderBy: 'id',
+    order: 'asc'
+  })
 
   const availableVehicles = computed(() => vehicles.value.filter(v => v.disponivel))
 
-  function buildQuery(pageNum: number) {
+  function buildQuery(pageNum: number, filterParams?: VehicleFilters) {
     const offset = (pageNum - 1) * itemsPerPage.value
     const params = new URLSearchParams()
+    const activeFilters = filterParams || filters.value
+
     params.set('offset', String(offset))
     params.set('limit', String(itemsPerPage.value))
-    params.set('disponiveis', 'true')
+
+    if (activeFilters.marca) params.set('marca', activeFilters.marca)
+    if (activeFilters.modelo) params.set('modelo', activeFilters.modelo)
+    if (activeFilters.ano) params.set('ano', String(activeFilters.ano))
+    if (activeFilters.minPreco !== null && activeFilters.minPreco !== undefined) {
+      params.set('min_preco', String(activeFilters.minPreco))
+    }
+    if (activeFilters.maxPreco !== null && activeFilters.maxPreco !== undefined) {
+      params.set('max_preco', String(activeFilters.maxPreco))
+    }
+    if (activeFilters.categoria) params.set('categoria', activeFilters.categoria)
+    if (activeFilters.disponiveis !== undefined) {
+      params.set('disponiveis', String(activeFilters.disponiveis))
+    }
+    if (activeFilters.orderBy) params.set('order_by', activeFilters.orderBy)
+    if (activeFilters.order) params.set('order', activeFilters.order)
+
     return params.toString()
   }
 
-  async function fetchVehicles(pageNum = 1) {
+  async function fetchVehicles(pageNum = 1, filterParams?: VehicleFilters) {
     loading.value = true
     error.value = null
     try {
-      const query = buildQuery(pageNum)
-      const response = await apiService.get<Veiculo[]>(`/veiculos?${query}`)
+      const query = buildQuery(pageNum, filterParams)
+      const response = await apiService.get<Veiculo[]>(`/veiculos?${query}`) as ApiResponse<Veiculo[]> & { pagination?: PaginationInfo }
 
       if (response.success && response.data) {
         vehicles.value = response.data
         currentPage.value = pageNum
+
+        if (response.pagination) {
+          pagination.value = response.pagination
+        } else {
+          pagination.value = {
+            total: vehicles.value.length,
+            page: pageNum,
+            limit: itemsPerPage.value,
+            totalPages: Math.ceil(vehicles.value.length / itemsPerPage.value),
+            hasNext: false,
+            hasPrev: pageNum > 1
+          }
+        }
       } else {
         error.value = response.message || 'Erro ao buscar veículos'
       }
@@ -40,6 +98,20 @@ export const useVehicleStore = defineStore('vehicles', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  function setFilters(newFilters: Partial<VehicleFilters>) {
+    filters.value = { ...filters.value, ...newFilters }
+    currentPage.value = 1
+  }
+
+  function clearFilters() {
+    filters.value = {
+      disponiveis: true,
+      orderBy: 'id',
+      order: 'asc'
+    }
+    currentPage.value = 1
   }
 
   async function fetchAllVehicles() {
@@ -171,6 +243,8 @@ export const useVehicleStore = defineStore('vehicles', () => {
     error,
     currentPage,
     itemsPerPage,
+    pagination,
+    filters,
     availableVehicles,
     fetchVehicles,
     fetchAllVehicles,
@@ -178,6 +252,8 @@ export const useVehicleStore = defineStore('vehicles', () => {
     fetchCategories,
     createVehicle,
     updateVehicle,
-    deleteVehicle
+    deleteVehicle,
+    setFilters,
+    clearFilters
   }
 })
