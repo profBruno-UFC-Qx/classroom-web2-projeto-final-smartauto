@@ -41,9 +41,6 @@ function sanitizeUsuario(usuario: Usuario): Omit<Usuario, 'usuario' | 'senha'> {
 function sanitizeLocacao(locacao: Locacao & { valor_total?: number }) {
   return {
     ...locacao,
-    cliente_id: undefined,
-    locador_id: undefined,
-    veiculo_id: undefined,
     locador: sanitizeUsuario(locacao.locador),
     cliente: sanitizeUsuario(locacao.cliente),
   };
@@ -55,6 +52,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
   try {
     const offset = parseInt(req.query.offset as string) || 0;
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+    const page = Math.floor(offset / limit) + 1;
     
     // Query params para filtros (null se não enviado)
     const status = (req.query.status as string) || null;
@@ -71,7 +69,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
     // Validar campo de ordenação (whitelist para segurança)
     const allowedOrderByFields = ["id", "data_inicio", "data_fim", "status"];
     const validOrderBy = allowedOrderByFields.includes(orderBy) ? orderBy : "data_inicio";
-    
+
     const user = req.user;
     if (!user) {
       return res.status(401).json({ error: "Usuário não autenticado" });
@@ -80,7 +78,7 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
     const isLocador = user.role === Role.LOCADOR;
     const repository = getConnection().getRepository(Locacao);
     
-    const locacoes = await repository
+    const queryBuilder = repository
       .createQueryBuilder("locacao")
       .leftJoinAndSelect("locacao.locador", "locador")
       .leftJoinAndSelect("locacao.cliente", "cliente")
@@ -92,7 +90,13 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
       .andWhere("(:locador_id IS NULL OR locacao.locador_id = :locador_id)", { locador_id: locador_id })
       .andWhere("(:data_inicio IS NULL OR locacao.data_inicio >= :data_inicio)", { data_inicio: data_inicio })
       .andWhere("(:data_fim IS NULL OR locacao.data_fim = :data_fim)", { data_fim: data_fim })
-      .orderBy(`locacao.${validOrderBy}`, order)
+      .orderBy(`locacao.${validOrderBy}`, order);
+    
+    // Contar total de registros com os filtros aplicados
+    const total = await queryBuilder.getCount();
+    
+    // Buscar locações paginadas
+    const locacoes = await queryBuilder
       .skip(offset)
       .take(limit)
       .getMany();
@@ -110,7 +114,23 @@ router.get("/", requireAuth, async (req: Request, res: Response) => {
       };
     });
     
-    res.json(locacoesComValorTotal.map(sanitizeLocacao));
+    // Calcular metadados de paginação
+    const totalPages = Math.ceil(total / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+    
+    res.json({
+      success: true,
+      data: locacoesComValorTotal.map(sanitizeLocacao),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext,
+        hasPrev,
+      },
+    });
   } catch (error) {
     res.status(500).json({ error: "Erro ao listar locações" });
   }
@@ -160,6 +180,12 @@ router.post("/", requireAuth, validate({ body: LocacaoSchema }), async (req: Req
     if (!cliente) {
       return res.status(404).json({ detail: "Cliente não encontrado" });
     }
+    // marcar veículo como indisponível se for o manager
+
+    if (isManager) {
+      veiculo.disponivel = false;
+      await veiculoRepository.save(veiculo);
+    }
     
     // Criar locação com status PENDENTE
     const dataInicio = new Date(data_inicio);
@@ -178,12 +204,21 @@ router.post("/", requireAuth, validate({ body: LocacaoSchema }), async (req: Req
     
     // Adicionar valor_total calculado na resposta
     const valorTotal = calcularValorTotal(dataInicio, dataFim, veiculo.valor_diaria);
-    const resposta = {
-      ...savedLocacao,
+
+    // retornar locação com relacionamentos
+    const locacaoComRelacionamentos = await locacaoRepository.findOne({
+      where: { id: savedLocacao.id },
+      relations: ["locador", "cliente", "veiculo"],
+    });
+    if (!locacaoComRelacionamentos) {
+      return res.status(404).json({ detail: "Locação não encontrada" });
+    }
+    const respostaComRelacionamentos = {
+      ...locacaoComRelacionamentos,
       valor_total: valorTotal,
     };
     
-    res.status(201).json(resposta);
+    res.status(201).json(respostaComRelacionamentos);
   } catch (error) {
     res.status(500).json({ error: "Erro ao criar locação" });
   }

@@ -50,6 +50,7 @@ router.get("/", async (req: Request, res: Response) => {
   try {
     const offset = parseInt(req.query.offset as string) || 0;
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+    const page = Math.floor(offset / limit) + 1;
     const repository = getConnection().getRepository(Veiculo);
     
     // Query params para filtros (null se não enviado)
@@ -92,12 +93,32 @@ router.get("/", async (req: Request, res: Response) => {
       .andWhere("(:categoria IS NULL OR categoria.nome = :categoria)", { categoria })
       .orderBy(`veiculo.${validOrderBy}`, order);
     
+    // Contar total de registros com os filtros aplicados
+    const total = await queryBuilder.getCount();
+    
+    // Buscar veículos paginados
     const veiculos = await queryBuilder
       .skip(offset)
       .take(limit)
       .getMany();
     
-    res.json(veiculos);
+    // Calcular metadados de paginação
+    const totalPages = Math.ceil(total / limit);
+    const hasNext = page < totalPages;
+    const hasPrev = page > 1;
+    
+    res.json({
+      success: true,
+      data: veiculos,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNext,
+        hasPrev,
+      },
+    });
   } catch (error) {
     res.status(500).json({ error: "Erro ao listar veículos" });
   }
