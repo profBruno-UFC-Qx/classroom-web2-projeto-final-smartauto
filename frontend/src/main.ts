@@ -48,8 +48,6 @@ app.use(pinia)
 app.use(router)
 app.use(vuetify)
 
-const authStore = useAuthStore()
-// Inicializar a sessão se houver token salvo
-authStore.initialize()
-
+// A inicialização será feita pelo router guard
+// Isso garante que o router aguarde a inicialização antes de verificar autenticação
 app.mount('#app')

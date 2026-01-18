@@ -11,6 +11,8 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('auth_token'))
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const initializing = ref(false)
+  const initialized = ref(false)
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
@@ -63,11 +65,19 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function initialize() {
+    // Evita múltiplas inicializações simultâneas
+    if (initializing.value || initialized.value) {
+      return
+    }
+
     // Verifica se há um token salvo no localStorage
     const savedToken = localStorage.getItem('auth_token')
     if (!savedToken) {
+      initialized.value = true
       return
     }
+
+    initializing.value = true
 
     // Configura o token no serviço de API
     token.value = savedToken
@@ -85,6 +95,9 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       // Erro ao validar token, limpa a sessão
       logout()
+    } finally {
+      initializing.value = false
+      initialized.value = true
     }
   }
 
@@ -93,6 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     apiService.clearToken()
     localStorage.removeItem('auth_token')
+    initialized.value = false
   }
 
   return {
@@ -100,6 +114,8 @@ export const useAuthStore = defineStore('auth', () => {
     token,
     loading,
     error,
+    initializing,
+    initialized,
     isAuthenticated,
     isAdmin,
     isLocador,
