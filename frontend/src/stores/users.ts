@@ -27,7 +27,7 @@ export const useUserStore = defineStore('users', () => {
     error.value = null
     try {
       const query = buildQuery(pageNum)
-      const response = await apiService.get<User[]>(`/auth/register?${query}`)
+      const response = await apiService.get<User[]>(`/usuarios?${query}`)
 
       if (response.success && response.data) {
         users.value = response.data
@@ -46,7 +46,7 @@ export const useUserStore = defineStore('users', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await apiService.get<User>(`/auth/register/${id}`)
+      const response = await apiService.get<User>(`/usuarios/${id}`)
 
       if (response.success && response.data) {
         return response.data
@@ -66,7 +66,7 @@ export const useUserStore = defineStore('users', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await apiService.post<User>('/auth/register', userData)
+      const response = await apiService.post<User>('/usuarios', userData)
 
       if (response.success && response.data) {
         users.value.unshift(response.data)
@@ -87,7 +87,7 @@ export const useUserStore = defineStore('users', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await apiService.put<User>(`/auth/register/${id}`, userData)
+      const response = await apiService.put<User>(`/usuarios/${id}`, userData)
 
       if (response.success && response.data) {
         const index = users.value.findIndex(u => u.id === id)
@@ -111,7 +111,7 @@ export const useUserStore = defineStore('users', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await apiService.delete<void>(`/auth/register/${id}`)
+      const response = await apiService.delete<void>(`/usuarios/${id}`)
 
       if (response.success) {
         users.value = users.value.filter(u => u.id !== id)
