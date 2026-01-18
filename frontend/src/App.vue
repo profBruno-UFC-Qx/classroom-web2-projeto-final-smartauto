@@ -33,7 +33,7 @@ function logout() {
           <v-btn variant="text" size="small">Veículos</v-btn>
         </router-link>
 
-        <router-link v-if="authStore.isAdmin || authStore.isLocador" to="/locacoes" class="text-decoration-none text-white">
+        <router-link v-if="isAuthenticated" to="/locacoes" class="text-decoration-none text-white">
           <v-btn variant="text" size="small">Locações</v-btn>
         </router-link>
 

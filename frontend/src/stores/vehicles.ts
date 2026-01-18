@@ -132,6 +132,33 @@ export const useVehicleStore = defineStore('vehicles', () => {
     }
   }
 
+  async function searchAvailableVehiclesByModel(modelo?: string | null) {
+    loading.value = true
+    error.value = null
+    try {
+      const params = new URLSearchParams()
+      params.set('disponiveis', 'true')
+      params.set('limit', '50') // Limite maior para busca
+      if (modelo && modelo.trim()) {
+        params.set('modelo', modelo.trim())
+      }
+
+      const response = await apiService.get<Veiculo[]>(`/veiculos?${params.toString()}`) as ApiResponse<Veiculo[]> & { pagination?: PaginationInfo }
+
+      if (response.success && response.data) {
+        return response.data
+      } else {
+        error.value = response.message || 'Erro ao buscar veículos'
+        return []
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erro ao buscar veículos'
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function fetchVehicleById(id: number) {
     loading.value = true
     error.value = null
@@ -254,6 +281,7 @@ export const useVehicleStore = defineStore('vehicles', () => {
     updateVehicle,
     deleteVehicle,
     setFilters,
-    clearFilters
+    clearFilters,
+    searchAvailableVehiclesByModel
   }
 })

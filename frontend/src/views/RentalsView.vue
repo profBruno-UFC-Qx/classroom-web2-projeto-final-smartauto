@@ -5,8 +5,9 @@ import { useRentalStore } from '@/stores/rentals'
 import { useVehicleStore } from '@/stores/vehicles'
 import { useUserStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
-import { RentalStatus } from '@/types'
-import type { Locacao, CreateRentalData, UpdateRentalData } from '@/types'
+import { RentalStatus, UserRole } from '@/types'
+import type { Locacao, CreateRentalData, UpdateRentalData, Veiculo, User } from '@/types'
+import { debounce } from '@/utils/debounce'
 
 const route = useRoute()
 const rentalStore = useRentalStore()
@@ -18,6 +19,14 @@ const showModal = ref(false)
 const editingRental = ref<Locacao | null>(null)
 const statusFilter = ref<RentalStatus | 'all'>('all')
 const formTotal = ref(0)
+
+// Busca de veículos e clientes
+const vehicleSearchTerm = ref('')
+const clienteSearchTerm = ref('')
+const searchedVehicles = ref<Veiculo[]>([])
+const searchedClientes = ref<User[]>([])
+const vehicleSearchLoading = ref(false)
+const clienteSearchLoading = ref(false)
 
 const formData = ref({
   data_inicio: '',
@@ -41,18 +50,89 @@ const notification = ref({
 const filteredRentals = computed(() => rentalStore.rentals)
 
 const availableVehiclesForSelect = computed(() => {
+  // Se está buscando, retorna os veículos da busca
+  if (vehicleSearchTerm.value.trim()) {
+    return searchedVehicles.value
+  }
+
+  // Caso contrário, retorna apenas veículos disponíveis do store
+  const vehicles = [...vehicleStore.vehicles.filter(v => v.disponivel)]
+
+  // Se está editando e o veículo selecionado não está disponível, adiciona ele
   if (editingRental.value) {
-    const allVehicles = [...vehicleStore.vehicles]
     const selectedVehicleId = formData.value.veiculo_id
-    const hasSelectedVehicle = allVehicles.some(v => v.id === selectedVehicleId)
+    const hasSelectedVehicle = vehicles.some(v => v.id === selectedVehicleId)
 
     if (!hasSelectedVehicle && editingRental.value.veiculo) {
-      allVehicles.push(editingRental.value.veiculo)
+      vehicles.push(editingRental.value.veiculo)
     }
-
-    return allVehicles
   }
-  return vehicleStore.vehicles.filter(v => v.disponivel)
+
+  return vehicles
+})
+
+const clientesForSelect = computed(() => {
+  let clientes: User[] = []
+
+  // Se está buscando, retorna os clientes da busca
+  if (clienteSearchTerm.value.trim()) {
+    clientes = [...searchedClientes.value]
+  } else {
+    // Caso contrário, retorna clientes do store
+    clientes = [...userStore.clienteUsers]
+  }
+
+  // Se está editando e o cliente selecionado não está na lista, adiciona ele
+  if (editingRental.value && editingRental.value.cliente) {
+    const selectedClienteId = formData.value.cliente_id
+    const hasSelectedCliente = clientes.some(c => c.id === selectedClienteId)
+
+    if (!hasSelectedCliente) {
+      clientes.push(editingRental.value.cliente)
+    }
+  }
+
+  return clientes
+})
+
+const searchVehicles = debounce(async (modelo: unknown) => {
+  const searchTerm = typeof modelo === 'string' ? modelo : ''
+  if (!searchTerm.trim()) {
+    searchedVehicles.value = []
+    return
+  }
+
+  vehicleSearchLoading.value = true
+  try {
+    const vehicles = await vehicleStore.searchAvailableVehiclesByModel(searchTerm)
+    searchedVehicles.value = vehicles
+  } finally {
+    vehicleSearchLoading.value = false
+  }
+}, 500)
+
+const searchClientes = debounce(async (nome: unknown) => {
+  const searchTerm = typeof nome === 'string' ? nome : ''
+  if (!searchTerm.trim()) {
+    searchedClientes.value = []
+    return
+  }
+
+  clienteSearchLoading.value = true
+  try {
+    const clientes = await userStore.searchClientesByName(searchTerm)
+    searchedClientes.value = clientes
+  } finally {
+    clienteSearchLoading.value = false
+  }
+}, 500)
+
+watch(() => vehicleSearchTerm.value, (newVal) => {
+  searchVehicles(newVal)
+})
+
+watch(() => clienteSearchTerm.value, (newVal) => {
+  searchClientes(newVal)
 })
 
 async function changePage(page: number) {
@@ -66,8 +146,12 @@ watch(() => statusFilter.value, () => {
 
 onMounted(async () => {
   await rentalStore.fetchRentals(1, statusFilter.value === 'all' ? null : statusFilter.value)
-  await vehicleStore.fetchAllVehicles()
-  await userStore.fetchUsers()
+  // Carregar apenas veículos disponíveis
+  await vehicleStore.fetchVehicles(1, { disponiveis: true })
+  // Carregar clientes se não for cliente
+  if (!isCliente.value) {
+    await userStore.fetchUsers(1, UserRole.CLIENTE)
+  }
 
   const veiculoId = route.query.veiculo
   if (veiculoId) {
@@ -89,6 +173,10 @@ async function openCreateModal(veiculoId?: number) {
     veiculo_id: veiculoId || formData.value.veiculo_id || 0,
     status: RentalStatus.PENDENTE
   }
+  vehicleSearchTerm.value = ''
+  clienteSearchTerm.value = ''
+  searchedVehicles.value = []
+  searchedClientes.value = []
   showModal.value = true
   await updateFormTotal()
 }
@@ -103,6 +191,23 @@ async function openEditModal(rental: Locacao) {
     veiculo_id: rental.veiculo_id,
     status: rental.status
   }
+  vehicleSearchTerm.value = ''
+  clienteSearchTerm.value = ''
+  searchedVehicles.value = []
+  searchedClientes.value = []
+
+  // Se o cliente não veio no relacionamento, buscar pelo ID
+  if (!rental.cliente && rental.cliente_id && !isCliente.value) {
+    const cliente = await userStore.fetchUserById(rental.cliente_id)
+    if (cliente) {
+      // Adicionar ao store para que apareça no select
+      const index = userStore.users.findIndex(u => u.id === cliente.id)
+      if (index === -1) {
+        userStore.users.push(cliente)
+      }
+    }
+  }
+
   showModal.value = true
   await updateFormTotal()
 }
@@ -462,6 +567,18 @@ watch([() => formData.value.veiculo_id, () => formData.value.data_inicio, () => 
 
         <v-card-text class="py-4">
           <v-form @submit.prevent="handleSubmit">
+            <!-- Busca e Seleção de Veículo -->
+            <v-text-field
+              v-model="vehicleSearchTerm"
+              label="Buscar veículo por modelo"
+              prepend-inner-icon="mdi-magnify"
+              variant="outlined"
+              density="compact"
+              clearable
+              placeholder="Digite o modelo do veículo"
+              class="mb-2"
+              :loading="vehicleSearchLoading"
+            ></v-text-field>
             <v-select
               v-model.number="formData.veiculo_id"
               :items="availableVehiclesForSelect"
@@ -471,6 +588,7 @@ watch([() => formData.value.veiculo_id, () => formData.value.data_inicio, () => 
               required
               density="compact"
               class="mb-3"
+              :disabled="availableVehiclesForSelect.length === 0"
             >
               <template v-slot:selection="{ item }">
                 {{ item.raw.marca }} {{ item.raw.modelo }}
@@ -482,19 +600,61 @@ watch([() => formData.value.veiculo_id, () => formData.value.data_inicio, () => 
                   </template>
                 </v-list-item>
               </template>
+              <template v-slot:no-data>
+                <v-list-item>
+                  <v-list-item-title>
+                    {{ vehicleSearchTerm ? 'Nenhum veículo encontrado' : 'Carregue veículos disponíveis' }}
+                  </v-list-item-title>
+                </v-list-item>
+              </template>
             </v-select>
 
-            <v-select
-              v-if="!isCliente"
-              v-model.number="formData.cliente_id"
-              :items="userStore.clienteUsers"
-              item-title="nome"
-              item-value="id"
-              label="Cliente"
-              required
-              density="compact"
-              class="mb-3"
-            ></v-select>
+            <!-- Busca e Seleção de Cliente -->
+            <template v-if="!isCliente">
+              <v-text-field
+                v-model="clienteSearchTerm"
+                label="Buscar cliente por nome"
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+                density="compact"
+                clearable
+                placeholder="Digite o nome do cliente"
+                class="mb-2"
+                :loading="clienteSearchLoading"
+              ></v-text-field>
+              <v-select
+                v-model.number="formData.cliente_id"
+                :items="clientesForSelect"
+                item-title="nome"
+                item-value="id"
+                label="Cliente"
+                required
+                density="compact"
+                class="mb-3"
+                :disabled="clientesForSelect.length === 0"
+              >
+                <template v-slot:selection="{ item }">
+                  {{ item.raw.nome }}
+                </template>
+                <template v-slot:item="{ item, props }">
+                  <v-list-item v-bind="props">
+                    <template v-slot:title>
+                      {{ item.raw.nome }}
+                    </template>
+                    <template v-slot:subtitle v-if="item.raw.email">
+                      {{ item.raw.email }}
+                    </template>
+                  </v-list-item>
+                </template>
+                <template v-slot:no-data>
+                  <v-list-item>
+                    <v-list-item-title>
+                      {{ clienteSearchTerm ? 'Nenhum cliente encontrado' : 'Carregue clientes' }}
+                    </v-list-item-title>
+                  </v-list-item>
+                </template>
+              </v-select>
+            </template>
             <v-text-field
               v-else
               :model-value="authStore.user?.nome || 'Cliente'"
