@@ -12,6 +12,13 @@ const showModal = ref(false)
 const editingUser = ref<User | null>(null)
 const roleFilter = ref<UserRole | 'all'>('all')
 
+// Notificações
+const notification = ref({
+  show: false,
+  message: '',
+  type: 'success' as 'success' | 'error'
+})
+
 const formData = ref({
   nome: '',
   usuario: '',
@@ -77,14 +84,22 @@ function closeModal() {
   editingUser.value = null
 }
 
+function showNotification(message: string, type: 'success' | 'error' = 'success') {
+  notification.value = { show: true, message, type }
+  // Auto-fechar após 4 segundos
+  setTimeout(() => {
+    notification.value.show = false
+  }, 4000)
+}
+
 async function handleSubmit() {
   if (!formData.value.nome || !formData.value.usuario || !formData.value.email) {
-    alert('Preencha todos os campos obrigatórios')
+    showNotification('Preencha todos os campos obrigatórios', 'error')
     return
   }
 
   if (!editingUser.value && !formData.value.senha) {
-    alert('Senha é obrigatória para novo usuário')
+    showNotification('Senha é obrigatória para novo usuário', 'error')
     return
   }
 
@@ -100,18 +115,31 @@ async function handleSubmit() {
 
   if (editingUser.value && editingUser.value.id) {
     await userStore.updateUser(editingUser.value.id, submitData as UpdateUserData)
+    if (!userStore.error) {
+      showNotification('Usuário atualizado com sucesso!', 'success')
+      closeModal()
+    } else {
+      showNotification(userStore.error, 'error')
+    }
   } else {
     await userStore.createUser(submitData as CreateUserData)
-  }
-
-  if (!userStore.error) {
-    closeModal()
+    if (!userStore.error) {
+      showNotification('Usuário criado com sucesso!', 'success')
+      closeModal()
+    } else {
+      showNotification(userStore.error, 'error')
+    }
   }
 }
 
 async function deleteUser(id: number) {
   if (confirm('Tem certeza que deseja deletar este usuário?')) {
     await userStore.deleteUser(id)
+    if (!userStore.error) {
+      showNotification('Usuário deletado com sucesso!', 'success')
+    } else {
+      showNotification(userStore.error, 'error')
+    }
   }
 }
 
@@ -183,6 +211,15 @@ function getRoleColor(role: UserRole): string {
         <v-alert type="error" closable>{{ userStore.error }}</v-alert>
       </v-col>
     </v-row>
+
+    <!-- Notificação de Feedback -->
+    <v-snackbar
+      v-model="notification.show"
+      :color="notification.type === 'success' ? 'success' : 'error'"
+      location="top"
+    >
+      {{ notification.message }}
+    </v-snackbar>
 
     <!-- Tabela de Usuários -->
     <v-row v-if="filteredUsers.length > 0">

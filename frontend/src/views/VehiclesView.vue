@@ -12,6 +12,13 @@ const showModal = ref(false)
 const editingVehicle = ref<Veiculo | null>(null)
 const showFilters = ref(false)
 
+// Notificações
+const notification = ref({
+  show: false,
+  message: '',
+  type: 'success' as 'success' | 'error'
+})
+
 const filters = ref({
   marca: '',
   modelo: '',
@@ -117,28 +124,49 @@ function closeModal() {
   editingVehicle.value = null
 }
 
+function showNotification(message: string, type: 'success' | 'error' = 'success') {
+  notification.value = { show: true, message, type }
+  setTimeout(() => {
+    notification.value.show = false
+  }, 4000)
+}
+
 async function handleSubmit() {
   if (!formData.value.marca || !formData.value.modelo) {
-    alert('Preenchimento obrigatório: marca e modelo')
+    showNotification('Preenchimento obrigatório: marca e modelo', 'error')
     return
   }
 
   if (editingVehicle.value && editingVehicle.value.id) {
     await vehicleStore.updateVehicle(editingVehicle.value.id, formData.value)
+    if (!vehicleStore.error) {
+      showNotification('Veículo atualizado com sucesso!', 'success')
+      closeModal()
+      await vehicleStore.fetchVehicles(vehicleStore.currentPage, vehicleStore.filters)
+    } else {
+      showNotification(vehicleStore.error, 'error')
+    }
   } else {
     await vehicleStore.createVehicle(formData.value)
-  }
-
-  if (!vehicleStore.error) {
-    closeModal()
-    await vehicleStore.fetchVehicles(vehicleStore.currentPage, vehicleStore.filters)
+    if (!vehicleStore.error) {
+      showNotification('Veículo criado com sucesso!', 'success')
+      closeModal()
+      await vehicleStore.fetchVehicles(vehicleStore.currentPage, vehicleStore.filters)
+    } else {
+      showNotification(vehicleStore.error, 'error')
+    }
   }
 }
 
 async function deleteVehicle(id: number) {
   if (confirm('Tem certeza que deseja deletar este veículo?')) {
     await vehicleStore.deleteVehicle(id)
-    await vehicleStore.fetchVehicles(vehicleStore.currentPage, vehicleStore.filters)
+    if (!vehicleStore.error) {
+      showNotification('Veículo deletado com sucesso!', 'success')
+      await vehicleStore.fetchVehicles(vehicleStore.currentPage, vehicleStore.filters)
+    } else {
+      showNotification(vehicleStore.error, 'error')
+    }
   }
 }
 </script>
@@ -303,6 +331,15 @@ async function deleteVehicle(id: number) {
         <v-alert type="error" closable>{{ vehicleStore.error }}</v-alert>
       </v-col>
     </v-row>
+
+    <!-- Notificação de Feedback -->
+    <v-snackbar
+      v-model="notification.show"
+      :color="notification.type === 'success' ? 'success' : 'error'"
+      location="top"
+    >
+      {{ notification.message }}
+    </v-snackbar>
 
     <v-row v-if="vehicleStore.vehicles.length > 0">
       <v-col

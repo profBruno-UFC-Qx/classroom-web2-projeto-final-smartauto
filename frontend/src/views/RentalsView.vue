@@ -30,6 +30,13 @@ const formData = ref({
 const canManageRentals = computed(() => authStore.isAdmin || authStore.isLocador)
 const isCliente = computed(() => authStore.isCliente)
 
+// Notificações
+const notification = ref({
+  show: false,
+  message: '',
+  type: 'success' as 'success' | 'error'
+})
+
 const filteredRentals = computed(() => {
   if (statusFilter.value === 'all') {
     return rentalStore.rentals
@@ -86,9 +93,16 @@ function closeModal() {
   editingRental.value = null
 }
 
+function showNotification(message: string, type: 'success' | 'error' = 'success') {
+  notification.value = { show: true, message, type }
+  setTimeout(() => {
+    notification.value.show = false
+  }, 4000)
+}
+
 async function handleSubmit() {
   if (!formData.value.data_inicio || !formData.value.data_fim || !formData.value.veiculo_id || !formData.value.cliente_id) {
-    alert('Preencha todos os campos obrigatórios')
+    showNotification('Preencha todos os campos obrigatórios', 'error')
     return
   }
 
@@ -96,13 +110,19 @@ async function handleSubmit() {
   const endDate = new Date(formData.value.data_fim)
 
   if (endDate <= startDate) {
-    alert('Data de término deve ser após a data de início')
+    showNotification('Data de término deve ser após a data de início', 'error')
     return
   }
 
   if (editingRental.value && editingRental.value.id) {
     // Na edição, enviar todos os dados (backend trata o status)
     await rentalStore.updateRental(editingRental.value.id, formData.value)
+    if (!rentalStore.error) {
+      showNotification('Locação atualizada com sucesso!', 'success')
+      closeModal()
+    } else {
+      showNotification(rentalStore.error, 'error')
+    }
   } else {
     // Na criação: se for cliente, locador_id = 0; se for admin/locador, locador_id = usuário da sessão
     const locadorId = isCliente.value ? 0 : (authStore.user?.id || 0)
@@ -115,28 +135,45 @@ async function handleSubmit() {
       veiculo_id: formData.value.veiculo_id
     }
     await rentalStore.createRental(createData as CreateRentalData)
-  }
-
-  if (!rentalStore.error) {
-    closeModal()
+    if (!rentalStore.error) {
+      showNotification('Locação criada com sucesso!', 'success')
+      closeModal()
+    } else {
+      showNotification(rentalStore.error, 'error')
+    }
   }
 }
 
 async function deleteRental(id: number) {
   if (confirm('Tem certeza que deseja deletar esta locação?')) {
     await rentalStore.deleteRental(id)
+    if (!rentalStore.error) {
+      showNotification('Locação deletada com sucesso!', 'success')
+    } else {
+      showNotification(rentalStore.error, 'error')
+    }
   }
 }
 
 async function approveRental(id: number) {
   if (confirm('Aprovar esta locação?')) {
     await rentalStore.approveRental(id)
+    if (!rentalStore.error) {
+      showNotification('Locação aprovada com sucesso!', 'success')
+    } else {
+      showNotification(rentalStore.error, 'error')
+    }
   }
 }
 
 async function rejectRental(id: number) {
   if (confirm('Recusar esta locação?')) {
     await rentalStore.rejectRental(id)
+    if (!rentalStore.error) {
+      showNotification('Locação recusada com sucesso!', 'success')
+    } else {
+      showNotification(rentalStore.error, 'error')
+    }
   }
 }
 
@@ -210,6 +247,21 @@ function calculateTotal(veiculo_id: number, dataInicio: Date | string, dataFim: 
         <v-progress-linear indeterminate></v-progress-linear>
       </v-col>
     </v-row>
+
+    <v-row v-if="rentalStore.error" class="mb-4">
+      <v-col cols="12">
+        <v-alert type="error" closable>{{ rentalStore.error }}</v-alert>
+      </v-col>
+    </v-row>
+
+    <!-- Notificação de Feedback -->
+    <v-snackbar
+      v-model="notification.show"
+      :color="notification.type === 'success' ? 'success' : 'error'"
+      location="top"
+    >
+      {{ notification.message }}
+    </v-snackbar>
 
     <v-row v-if="rentalStore.error" class="mb-4">
       <v-col cols="12">
