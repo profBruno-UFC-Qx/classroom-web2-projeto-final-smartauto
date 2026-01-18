@@ -230,7 +230,7 @@ async function deleteVehicle(id: number) {
             color="secondary"
             variant="outlined"
             prepend-icon="mdi-filter"
-            height="40"
+            density="compact"
             @click="showFilters = !showFilters"
           >
             Filtros

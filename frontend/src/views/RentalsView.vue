@@ -397,9 +397,19 @@ watch([() => formData.value.veiculo_id, () => formData.value.data_inicio, () => 
 <template>
   <v-container class="py-8">
     <v-row class="mb-6">
-      <v-col cols="12">
-        <h1 class="text-h4 font-weight-bold mb-2">Locações de Veículos</h1>
-        <p class="text-body2 text-disabled">Gerencie as solicitações e aprovações de aluguel</p>
+      <v-col cols="12" class="d-flex align-center justify-space-between">
+        <div>
+          <h1 class="text-h4 font-weight-bold mb-2">Locações de Veículos</h1>
+          <p class="text-body2 text-disabled">Gerencie as solicitações e aprovações de aluguel</p>
+        </div>
+        <v-btn
+          to="/"
+          variant="outlined"
+          prepend-icon="mdi-home"
+          density="compact"
+        >
+          Home
+        </v-btn>
       </v-col>
     </v-row>
 
