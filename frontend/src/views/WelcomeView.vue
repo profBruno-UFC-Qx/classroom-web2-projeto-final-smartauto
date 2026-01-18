@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicles'
 import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
 
 const vehicleStore = useVehicleStore()
 const authStore = useAuthStore()
@@ -187,7 +190,13 @@ onBeforeUnmount(() => {
                         color="primary"
                         variant="elevated"
                         block
-                        :to="authStore.isAuthenticated ? '/veiculos' : '/login'"
+                        @click="() => {
+                          if (authStore.isAuthenticated) {
+                            router.push('/veiculos')
+                          } else {
+                            router.push({ path: '/login', query: { redirect: '/veiculos' } })
+                          }
+                        }"
                       >
                         {{ authStore.isAuthenticated ? 'Ver Detalhes' : 'Fazer Login para Alugar' }}
                       </v-btn>
@@ -268,6 +277,17 @@ onBeforeUnmount(() => {
                 color="primary"
                 size="large"
                 variant="elevated"
+                prepend-icon="mdi-car-multiple"
+                to="/veiculos"
+                class="mr-3"
+              >
+                Ver Veículos
+              </v-btn>
+              <v-btn
+                v-if="!authStore.isAuthenticated"
+                color="primary"
+                size="large"
+                variant="outlined"
                 prepend-icon="mdi-account-plus"
                 to="/register"
                 class="mr-3"

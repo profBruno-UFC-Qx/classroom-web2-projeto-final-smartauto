@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const usuario = ref('')
 const senha = ref('')
@@ -22,7 +23,9 @@ async function handleLogin() {
   const success = await authStore.login(usuario.value, senha.value)
 
   if (success) {
-    router.push('/')
+    // Se houver um redirect na query, redireciona para lá, senão vai para home
+    const redirect = route.query.redirect as string | undefined
+    router.push(redirect || '/')
   } else {
     errorMessage.value = authStore.error || 'Erro ao fazer login'
   }

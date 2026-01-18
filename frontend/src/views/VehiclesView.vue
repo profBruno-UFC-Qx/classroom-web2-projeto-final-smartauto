@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useVehicleStore, type VehicleFilters } from '@/stores/vehicles'
 import { useAuthStore } from '@/stores/auth'
 import type { Veiculo } from '@/types'
 import { debounce } from '@/utils/debounce'
+
+const router = useRouter()
 
 const vehicleStore = useVehicleStore()
 const authStore = useAuthStore()
@@ -86,6 +89,16 @@ async function clearFilters() {
 
 async function changePage(page: number) {
   await vehicleStore.fetchVehicles(page, vehicleStore.filters)
+}
+
+function handleRentVehicle(vehicleId: number) {
+  if (!authStore.isAuthenticated) {
+    // Se não estiver autenticado, redireciona para login com o veículo como query param
+    router.push({ path: '/login', query: { redirect: `/locacoes?veiculo=${vehicleId}` } })
+  } else {
+    // Se estiver autenticado, redireciona para a página de locações com o veículo selecionado
+    router.push(`/locacoes?veiculo=${vehicleId}`)
+  }
 }
 
 onMounted(async () => {
@@ -174,9 +187,19 @@ async function deleteVehicle(id: number) {
 <template>
   <v-container class="py-8">
     <v-row class="mb-6">
-      <v-col cols="12">
-        <h1 class="text-h4 font-weight-bold mb-2">Veículos Disponíveis</h1>
-        <p class="text-body2 text-disabled">Consulte nosso catálogo de veículos para aluguel</p>
+      <v-col cols="12" class="d-flex align-center justify-space-between">
+        <div>
+          <h1 class="text-h4 font-weight-bold mb-2">Veículos Disponíveis</h1>
+          <p class="text-body2 text-disabled">Consulte nosso catálogo de veículos para aluguel</p>
+        </div>
+        <v-btn
+          to="/"
+          variant="outlined"
+          prepend-icon="mdi-home"
+          density="compact"
+        >
+          Home
+        </v-btn>
       </v-col>
     </v-row>
 
@@ -414,7 +437,7 @@ async function deleteVehicle(id: number) {
               v-if="vehicle.disponivel"
               color="primary"
               size="small"
-              @click="$router.push(`/locacoes?veiculo=${vehicle.id}`)"
+              @click="handleRentVehicle(vehicle.id!)"
             >
               Alugar
             </v-btn>
