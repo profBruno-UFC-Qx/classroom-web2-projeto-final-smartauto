@@ -24,7 +24,7 @@ const userName = computed(() => authStore.user?.nome || 'Usuário')
         <v-icon class="hero-icon">mdi-car-sports</v-icon>
         
         <h1 class="hero-title">
-          {{ isAuthenticated ? `Olá, ${userName}!` : 'Bem-vindo ao SmartAuto' }}
+          {{ isAuthenticated ? `Olá, ${userName}!` : 'Bem-vindo(a) ao SmartAuto' }}
         </h1>
         
         <p class="hero-subtitle">
@@ -223,6 +223,7 @@ const userName = computed(() => authStore.user?.nome || 'Usuário')
   margin-bottom: 0.7rem;
   line-height: 1.2;
   letter-spacing: -0.5px;
+  white-space: nowrap;
 }
 
 .hero-subtitle {
