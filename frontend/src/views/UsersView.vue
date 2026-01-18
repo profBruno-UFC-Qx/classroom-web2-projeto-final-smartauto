@@ -309,7 +309,7 @@ function getRoleColor(role: UserRole): string {
               <v-col cols="12" sm="6">
                 <v-text-field
                   v-model="formData.nome"
-                  label="Nome Completo"
+                  label="Nome"
                   required
                   density="compact"
                   class="mb-3"
