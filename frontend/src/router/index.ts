@@ -32,7 +32,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/usuarios',
     component: () => import('@/views/UsersView.vue'),
-    meta: { requiresAuth: true, roles: [UserRole.ADMIN] }
+    meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.LOCADOR] }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -45,10 +45,15 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.meta.requiresAuth ?? true
   const allowedRoles = to.meta.roles as UserRole[] | undefined
+
+  // Se ainda não foi inicializado e há um token, aguarda a inicialização
+  if (!authStore.initialized && authStore.token) {
+    await authStore.initialize()
+  }
 
   if (requiresAuth) {
     if (!authStore.isAuthenticated) {

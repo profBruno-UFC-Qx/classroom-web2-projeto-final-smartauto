@@ -4,34 +4,59 @@ import { apiService } from '@/services/api'
 import { RentalStatus } from '@/types'
 import type { Locacao, CreateRentalData, UpdateRentalData } from '@/types'
 
+export interface PaginationInfo {
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
+}
+
 export const useRentalStore = defineStore('rentals', () => {
   const rentals = ref<Locacao[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const currentPage = ref(1)
   const itemsPerPage = ref(10)
+  const pagination = ref<PaginationInfo | null>(null)
 
   const pendingRentals = computed(() => rentals.value.filter(r => r.status === RentalStatus.PENDENTE))
   const approvedRentals = computed(() => rentals.value.filter(r => r.status === RentalStatus.APROVADA))
 
-  function buildQuery(pageNum: number) {
-    const offset = (pageNum - 1) * itemsPerPage.value
-    const params = new URLSearchParams()
-    params.set('offset', String(offset))
-    params.set('limit', String(itemsPerPage.value))
-    return params.toString()
-  }
 
-  async function fetchRentals(pageNum = 1) {
+
+  async function fetchRentals(pageNum = 1, status?: RentalStatus | null) {
     loading.value = true
     error.value = null
     try {
-      const query = buildQuery(pageNum)
-      const response = await apiService.get<Locacao[]>(`/locacoes?${query}`)
+      const params = new URLSearchParams()
+      const offset = (pageNum - 1) * itemsPerPage.value
+      params.set('offset', String(offset))
+      params.set('limit', String(itemsPerPage.value))
+      if (status && status !== RentalStatus.PENDENTE) {
+        params.set('status', status)
+      }
+
+      const query = params.toString()
+      const response = await apiService.get<Locacao[]>(`/locacoes?${query}`) as { success: boolean; data?: Locacao[]; message?: string; pagination?: PaginationInfo }
 
       if (response.success && response.data) {
         rentals.value = response.data
         currentPage.value = pageNum
+
+        if (response.pagination) {
+          pagination.value = response.pagination
+        } else {
+          pagination.value = {
+            total: rentals.value.length,
+            page: pageNum,
+            limit: itemsPerPage.value,
+            totalPages: Math.ceil(rentals.value.length / itemsPerPage.value),
+            hasNext: false,
+            hasPrev: pageNum > 1
+          }
+        }
       } else {
         error.value = response.message || 'Erro ao buscar locações'
       }
@@ -182,6 +207,7 @@ export const useRentalStore = defineStore('rentals', () => {
     error,
     currentPage,
     itemsPerPage,
+    pagination,
     pendingRentals,
     approvedRentals,
     fetchRentals,
