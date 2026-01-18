@@ -18,7 +18,7 @@ function logout() {
 
 <template>
   <v-app>
-    <v-app-bar v-if="isAuthenticated" color="primary" dark sticky>
+    <v-app-bar v-if="isAuthenticated" color="primary" dark sticky class="px-4">
       <v-app-bar-nav-icon @click="drawer = !drawer" class="d-md-none"></v-app-bar-nav-icon>
 
       <router-link to="/" class="text-decoration-none d-flex align-center gap-2">
