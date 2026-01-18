@@ -88,14 +88,19 @@ router.get("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req
     const funcao = (req.query.funcao as Role) || null;
     
     const repository = getConnection().getRepository(Usuario);
+
+    // locador só lista clientes
+    const isLocador = req.user?.role === Role.LOCADOR;
+
+    const role = isLocador ? Role.CLIENTE : funcao;
     
     // Construir condições where
     const whereConditions: any = {};
     if (nome) {
       whereConditions.nome = Like(`%${nome}%`);
     }
-    if (funcao) {
-      whereConditions.role = funcao;
+    if (role) {
+      whereConditions.role = role;
     }
     
     // Contar total de registros com os filtros aplicados

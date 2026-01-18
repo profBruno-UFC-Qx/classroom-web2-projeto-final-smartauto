@@ -209,7 +209,9 @@ function clearFilters() {
         ></v-text-field>
       </v-col>
       <v-col cols="12" md="4">
+        <!-- locador não pode filtrar por papel -->
         <v-select
+          v-if="!authStore.isLocador"
           v-model="roleFilter"
           :items="[
             { title: 'Todos', value: 'all' },

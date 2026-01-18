@@ -68,6 +68,33 @@ export const useUserStore = defineStore('users', () => {
     }
   }
 
+  async function searchClientesByName(nome?: string | null) {
+    loading.value = true
+    error.value = null
+    try {
+      const params = new URLSearchParams()
+      params.set('limit', '50') // Limite maior para busca
+      params.set('funcao', 'cliente') // Buscar apenas clientes
+      if (nome && nome.trim()) {
+        params.set('nome', nome.trim())
+      }
+
+      const response = (await apiService.get<User[]>(`/usuarios?${params.toString()}`)) as UsersApiResponse
+
+      if (response.success && response.data) {
+        return response.data
+      } else {
+        error.value = response.message || 'Erro ao buscar clientes'
+        return []
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erro ao buscar clientes'
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function fetchUserById(id: number) {
     loading.value = true
     error.value = null
@@ -171,6 +198,7 @@ export const useUserStore = defineStore('users', () => {
     fetchUserById,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    searchClientesByName
   }
 })
