@@ -29,10 +29,11 @@ export const useUserStore = defineStore('users', () => {
   const clienteUsers = computed(() => users.value.filter(u => u.role === 'cliente'))
 
   function buildQuery(pageNum: number, role?: UserRole | 'all') {
-    const offset = (pageNum - 1) * itemsPerPage.value
+    const limit = itemsPerPage.value
+    const offset = limit > 0 ? (pageNum - 1) * limit : 0
     const params = new URLSearchParams()
     params.set('offset', String(offset))
-    params.set('limit', String(itemsPerPage.value))
+    params.set('limit', String(limit))
     if (role && role !== 'all') {
       params.set('funcao', role)
     }

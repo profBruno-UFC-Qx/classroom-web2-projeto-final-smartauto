@@ -291,19 +291,23 @@ function changePage(page: number) {
     </v-row>
 
     <!-- Paginação -->
-    <v-row v-if="userStore.totalPages > 1" class="mt-4 align-center">
+    <v-row class="mt-4 align-center">
       <v-col cols="12" sm="6" md="4">
         <v-select
           v-model="userStore.itemsPerPage"
-          :items="[5, 10, 20, 50]"
+          :items="[{ title: '5', value: 5 }, { title: '10', value: 10 }, { title: '20', value: 20 }, { title: '50', value: 50 }, { title: 'Todos', value: 0 }]"
           label="Itens por página"
           density="compact"
           variant="outlined"
+          item-title="title"
+          item-value="value"
+          style="max-width: 140px"
           @update:model-value="() => userStore.fetchUsers(1, roleFilter)"
         ></v-select>
       </v-col>
       <v-col cols="12" sm="6" md="8" class="text-right">
         <v-pagination
+          v-if="userStore.totalPages > 1"
           v-model="userStore.currentPage"
           :length="userStore.totalPages"
           @update:model-value="changePage"
@@ -315,7 +319,7 @@ function changePage(page: number) {
     </v-row>
 
     <!-- Vazio -->
-    <v-row v-else>
+    <v-row v-if="userStore.users.length === 0">
       <v-col cols="12" class="text-center py-12">
         <v-icon size="48" class="text-disabled mb-4">mdi-account-off</v-icon>
         <p class="text-body1 text-disabled">Nenhum usuário encontrado</p>

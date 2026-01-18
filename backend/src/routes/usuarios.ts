@@ -81,9 +81,9 @@ router.post("/", requireAuth, validate({ body: UsuarioSchema }), requireRole([Ro
 router.get("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req: Request, res: Response) => {
   try {
     const offset = parseInt(req.query.offset as string) || 0;
-    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
-    const page = Math.floor(offset / limit) + 1;
-
+    const limitParam = req.query.limit as string;
+    const limit = limitParam !== undefined ? Math.min(parseInt(limitParam), 100) : 10;
+    
     const nome = (req.query.nome as string) || null;
     const funcao = (req.query.funcao as Role) || null;
     
@@ -101,17 +101,22 @@ router.get("/", requireAuth, requireRole([Role.LOCADOR, Role.ADMIN]), async (req
     // Contar total de registros com os filtros aplicados
     const total = await repository.count({ where: whereConditions });
     
-    // Buscar usuários paginados
-    const usuarios = await repository.find({
-      skip: offset,
-      take: limit,
-      where: whereConditions,
-    });
+    // Se limit for 0, retornar todos os registros
+    const findOptions: any = { where: whereConditions };
+    if (limit > 0) {
+      findOptions.skip = offset;
+      findOptions.take = limit;
+    }
+    
+    // Buscar usuários
+    const usuarios = await repository.find(findOptions);
     
     // Calcular metadados de paginação
-    const totalPages = Math.ceil(total / limit);
-    const hasNext = page < totalPages;
-    const hasPrev = page > 1;
+    const effectiveLimit = limit > 0 ? limit : total;
+    const page = effectiveLimit > 0 ? Math.floor(offset / effectiveLimit) + 1 : 1;
+    const totalPages = effectiveLimit > 0 ? Math.ceil(total / effectiveLimit) : 1;
+    const hasNext = limit > 0 && page < totalPages;
+    const hasPrev = limit > 0 && page > 1;
     
     res.json({
       success: true,
