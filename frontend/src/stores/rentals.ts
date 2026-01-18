@@ -34,7 +34,7 @@ export const useRentalStore = defineStore('rentals', () => {
       const offset = (pageNum - 1) * itemsPerPage.value
       params.set('offset', String(offset))
       params.set('limit', String(itemsPerPage.value))
-      if (status && status !== RentalStatus.PENDENTE) {
+      if (status && status !== null && status !== undefined) {
         params.set('status', status)
       }
 
