@@ -22,10 +22,12 @@ const role = ref<UserRoleType | ''>('')
 const errorMessage = ref('')
 const showPassword = ref(false)
 const showConfirm = ref(false)
+const apiKey = ref('')
 
 const roleOptions = [
   { title: 'Cliente', value: UserRole.CLIENTE },
-  { title: 'Locador', value: UserRole.LOCADOR }
+  { title: 'Locador', value: UserRole.LOCADOR },
+  { title: 'Administrador', value: UserRole.ADMIN }
 ]
 
 async function handleRegister() {
@@ -46,6 +48,12 @@ async function handleRegister() {
     return
   }
 
+  // Para criar usuário administrador é necessário fornecer API Key
+  if (role.value === UserRole.ADMIN && !apiKey.value) {
+    errorMessage.value = 'API Key é obrigatória para cadastrar Administrador'
+    return
+  }
+
   const userData = {
     nome: nome.value,
     usuario: usuario.value,
@@ -59,9 +67,12 @@ async function handleRegister() {
     role: role.value as UserRoleType
   }
 
-  const success = await authStore.register(userData)
+  // Se for administrador, enviar API Key
+  const finalSuccess = role.value === UserRole.ADMIN
+    ? await authStore.register(userData, apiKey.value)
+    : await authStore.register(userData)
 
-  if (success) {
+  if (finalSuccess) {
     router.push('/login')
   } else {
     errorMessage.value = authStore.error || 'Erro ao criar conta'
@@ -81,7 +92,7 @@ async function handleRegister() {
             <v-form @submit.prevent="handleRegister">
               <v-text-field
                 v-model="nome"
-                label="Nome Completo"
+                label="Nome"
                 outlined
                 class="field"
                 density="compact"
@@ -216,6 +227,18 @@ async function handleRegister() {
                 density="compact"
                 required
               ></v-select>
+
+              <v-text-field
+                v-if="role === UserRole.ADMIN"
+                v-model="apiKey"
+                label="API Key de Admin"
+                outlined
+                class="field"
+                density="compact"
+                required
+                hint="Necessário para criar conta de Administrador"
+                persistent-hint
+              ></v-text-field>
 
               <v-alert v-if="errorMessage" type="error" class="alert">
                 {{ errorMessage }}

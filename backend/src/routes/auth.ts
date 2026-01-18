@@ -21,7 +21,8 @@ const UserRegisterSchema = z.object({
   uf: z.string().min(2).optional(),
   cidade: z.string().min(3).optional(),
   logradouro: z.string().min(3).optional(),
-  numero: z.string().optional(),
+  // Aceita número do frontend e converte para string
+  numero: z.coerce.string().optional(),
   api_key: z.string().optional(),
 });
 

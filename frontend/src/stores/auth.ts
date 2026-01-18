@@ -45,11 +45,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(userData: CreateUserData) {
+  async function register(userData: CreateUserData, apiKey?: string) {
     loading.value = true
     error.value = null
     try {
-      const response = await apiService.post('/auth/register', userData)
+      const response = await apiService.post('/auth/register', {
+        ...userData,
+        // Backend usa 'api_key' para permitir ADMIN
+        api_key: apiKey
+      })
       if (!response.success) {
         error.value = response.message || 'Erro ao registrar'
       }
